@@ -4,7 +4,7 @@ import { Settings, Play, Pause, SkipForward } from 'lucide-react';
 import { useAppStore } from '../../store';
 
 export const TimerView: React.FC = () => {
-  const { workDuration, shortBreakDuration, longBreakDuration, setTimerSettings } = useAppStore();
+  const { workDuration, shortBreakDuration, longBreakDuration } = useAppStore();
   
   const [mode, setMode] = useState<'work' | 'shortBreak' | 'longBreak'>('work');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);

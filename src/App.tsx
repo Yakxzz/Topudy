@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SplashScreen } from './components/SplashScreen';
 import { Layout } from './components/Layout';
 import { TimerView } from './components/Timer/TimerView';

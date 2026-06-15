@@ -89,12 +89,12 @@ export const Layout: React.FC<{ children: React.ReactNode, activeTab: string, se
   );
 };
 
-const NavButton = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
+const NavButton = ({ icon, label, active, onClick }: { icon: React.ReactElement<{ size?: number }>, label: string, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick}
     className={`flex flex-col items-center gap-1 transition-colors duration-300 ${active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
   >
-    {React.cloneElement(icon as React.ReactElement, { size: 20 })}
+    {React.cloneElement(icon, { size: 20 })}
     <span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span>
   </button>
 );
