@@ -147,7 +147,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
           Cancel
         </button>
 
-        <p className="mt-8 text-center text-xs text-[var(--text-secondary)] opacity-50 tracking-widest uppercase">Created by xyz</p>
+        <p className="mt-8 text-center text-xs text-[var(--text-secondary)] opacity-50 tracking-widest uppercase">Created by Yaksh</p>
       </motion.div>
     </motion.div>
   );
