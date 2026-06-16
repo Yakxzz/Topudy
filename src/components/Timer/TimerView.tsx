@@ -33,6 +33,23 @@ export const TimerView: React.FC<{
   const [showGamification, setShowGamification] = useState(false);
   const [themePopup, setThemePopup] = useState<string | null>(null);
 
+  // Zen Mode Hover
+  const [isHovering, setIsHovering] = useState(false);
+  const [idleTimer, setIdleTimer] = useState<number | null>(null);
+
+  const resetIdleTimer = () => {
+    setIsHovering(true);
+    if (idleTimer) window.clearTimeout(idleTimer);
+    const timer = window.setTimeout(() => setIsHovering(false), 3000);
+    setIdleTimer(timer);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (idleTimer) window.clearTimeout(idleTimer);
+    };
+  }, [idleTimer]);
+
   // Intermission State
   const [intermission, setIntermission] = useState<{ active: boolean, nextMode: TimerMode, timeLeft: number } | null>(null);
 
@@ -148,6 +165,10 @@ export const TimerView: React.FC<{
   return (
     <div 
       className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden"
+      onMouseEnter={resetIdleTimer}
+      onMouseLeave={() => setIsHovering(false)}
+      onTouchStart={resetIdleTimer}
+      onMouseMove={resetIdleTimer}
     >
       
       {/* Top Bar: Analytics & Gamification (Hidden when active) */}
@@ -261,9 +282,9 @@ export const TimerView: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Controls (Hidden when active) */}
+      {/* Controls (Hidden when active unless hovering) */}
       <AnimatePresence>
-        {!isActive && !intermission && (
+        {(!isActive || isHovering) && !intermission && (
           <motion.div 
             className="flex items-center gap-8 mt-16 text-[var(--text-secondary)] absolute bottom-32"
             initial={{ opacity: 0, y: 20 }}
