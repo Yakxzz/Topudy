@@ -312,6 +312,7 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <button onClick={onClose} className="w-full py-3 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">
           Cancel
         </button>
+        <p className="mt-8 text-center text-xs text-[var(--text-secondary)] opacity-50 tracking-widest uppercase">Created by Yaksh</p>
       </motion.div>
     </motion.div>
   );
