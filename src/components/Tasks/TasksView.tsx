@@ -10,19 +10,45 @@ export const TasksView: React.FC = () => {
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedChapter, setSelectedChapter] = useState('');
+  const [selectedSubtopic, setSelectedSubtopic] = useState('');
 
   const filteredTasks = tasks.filter(t => t.isDaily === (activeTab === 'daily'));
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newTaskTitle.trim()) {
+    if (newTaskTitle.trim() || selectedSubtopic || selectedChapter || selectedSubject) {
+      // If user selected from syllabus but didn't type title, auto-generate title
+      let title = newTaskTitle.trim();
+      if (!title) {
+        if (selectedSubtopic) {
+          const subject = syllabus.find(s => s.id === selectedSubject);
+          const chapter = subject?.chapters.find(c => c.id === selectedChapter);
+          const sub = chapter?.subtopics.find(st => st.id === selectedSubtopic);
+          title = sub?.title || 'Untitled Task';
+        } else if (selectedChapter) {
+          const subject = syllabus.find(s => s.id === selectedSubject);
+          const chapter = subject?.chapters.find(c => c.id === selectedChapter);
+          title = chapter?.title || 'Untitled Task';
+        } else if (selectedSubject) {
+          const subject = syllabus.find(s => s.id === selectedSubject);
+          title = subject?.title || 'Untitled Task';
+        } else {
+          return; // No title and no link
+        }
+      }
+
       addTask({
-        title: newTaskTitle.trim(),
+        title,
         isDaily: activeTab === 'daily',
-        linkedSubjectId: selectedSubject || undefined
+        linkedSubjectId: selectedSubject || undefined,
+        linkedChapterId: selectedChapter || undefined,
+        linkedSubtopicId: selectedSubtopic || undefined
       });
       setNewTaskTitle('');
       setSelectedSubject('');
+      setSelectedChapter('');
+      setSelectedSubtopic('');
       setShowAdd(false);
     }
   };
@@ -53,10 +79,23 @@ export const TasksView: React.FC = () => {
     toggleTask(id);
   };
 
-  const getSubjectName = (id?: string) => {
-    if (!id) return null;
-    return syllabus.find(s => s.id === id)?.title || null;
+  const getSyllabusLinkText = (task: any) => {
+    if (!task.linkedSubjectId) return null;
+    const subject = syllabus.find(s => s.id === task.linkedSubjectId);
+    let text = subject?.title || '';
+    if (task.linkedChapterId) {
+      const chapter = subject?.chapters.find(c => c.id === task.linkedChapterId);
+      if (chapter) text += ` > ${chapter.title}`;
+      if (task.linkedSubtopicId) {
+        const sub = chapter.subtopics.find(st => st.id === task.linkedSubtopicId);
+        if (sub) text += ` > ${sub.title}`;
+      }
+    }
+    return text;
   };
+
+  const currentSubject = syllabus.find(s => s.id === selectedSubject);
+  const currentChapter = currentSubject?.chapters.find(c => c.id === selectedChapter);
 
   return (
     <div className="w-full max-w-3xl mx-auto pb-32">
@@ -97,8 +136,8 @@ export const TasksView: React.FC = () => {
                   {task.title}
                 </span>
                 {task.linkedSubjectId && (
-                  <span className="text-xs text-[var(--accent)] uppercase tracking-wider font-semibold mt-1">
-                    {getSubjectName(task.linkedSubjectId)}
+                  <span className="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold mt-1">
+                    {getSyllabusLinkText(task)}
                   </span>
                 )}
               </div>
@@ -118,22 +157,62 @@ export const TasksView: React.FC = () => {
             <input 
               autoFocus
               type="text" 
-              placeholder={`New ${activeTab} task...`}
+              placeholder={`New ${activeTab} task (or leave empty to use syllabus title)...`}
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
               className="w-full p-2 bg-transparent text-[var(--text-primary)] text-lg border-b border-[var(--border)] outline-none focus:border-[var(--accent)]"
             />
-            <div className="flex gap-4">
-              <select 
-                value={selectedSubject} 
-                onChange={e => setSelectedSubject(e.target.value)}
-                className="p-2 text-sm rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none border-none focus:ring-1 focus:ring-[var(--accent)]"
-              >
-                <option value="">No Syllabus Link</option>
-                {syllabus.map(s => (
-                  <option key={s.id} value={s.id}>{s.title}</option>
-                ))}
-              </select>
+            
+            <div className="flex flex-col gap-3">
+              <span className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Link to Syllabus (Optional)</span>
+              <div className="flex gap-4 flex-wrap">
+                <select 
+                  value={selectedSubject} 
+                  onChange={e => {
+                    setSelectedSubject(e.target.value);
+                    setSelectedChapter('');
+                    setSelectedSubtopic('');
+                  }}
+                  className="p-2 text-sm rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none border-none focus:ring-1 focus:ring-[var(--accent)] max-w-[200px]"
+                >
+                  <option value="">No Subject Link</option>
+                  {syllabus.map(s => (
+                    <option key={s.id} value={s.id}>{s.title}</option>
+                  ))}
+                </select>
+
+                {currentSubject && (
+                  <select 
+                    value={selectedChapter} 
+                    onChange={e => {
+                      setSelectedChapter(e.target.value);
+                      setSelectedSubtopic('');
+                    }}
+                    className="p-2 text-sm rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none border-none focus:ring-1 focus:ring-[var(--accent)] max-w-[200px]"
+                  >
+                    <option value="">No Chapter Link</option>
+                    {currentSubject.chapters.map(c => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                )}
+
+                {currentChapter && (
+                  <select 
+                    value={selectedSubtopic} 
+                    onChange={e => setSelectedSubtopic(e.target.value)}
+                    className="p-2 text-sm rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none border-none focus:ring-1 focus:ring-[var(--accent)] max-w-[200px]"
+                  >
+                    <option value="">No Subtopic Link</option>
+                    {currentChapter.subtopics.map(st => (
+                      <option key={st.id} value={st.id}>{st.title}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4 border-t border-[var(--border)]">
               <div className="flex-1"></div>
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button>
               <button type="submit" className="px-6 py-2 rounded-xl bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors">Add Task</button>

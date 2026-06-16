@@ -72,7 +72,9 @@ export interface AppState {
   addChapter: (subjectId: string, title: string) => void
   deleteChapter: (subjectId: string, chapterId: string) => void
   addSubtopic: (subjectId: string, chapterId: string, title: string) => void
-  toggleSubtopic: (subjectId: string, chapterId: string, subtopicId: string) => void
+  toggleSubject: (subjectId: string, completed: boolean) => void
+  toggleChapter: (subjectId: string, chapterId: string, completed: boolean) => void
+  toggleSubtopic: (subjectId: string, chapterId: string, subtopicId: string, forceStatus?: boolean) => void
   deleteSubtopic: (subjectId: string, chapterId: string, subtopicId: string) => void
 }
 
@@ -229,7 +231,34 @@ export const useAppStore = create<AppState>()(
           : s
         )
       })),
-      toggleSubtopic: (subjectId, chapterId, subtopicId) => set((state) => ({
+      toggleSubject: (subjectId, completed) => set((state) => ({
+        syllabus: state.syllabus.map(s => s.id === subjectId
+          ? {
+              ...s,
+              chapters: s.chapters.map(c => ({
+                ...c,
+                subtopics: c.subtopics.map(st => ({ ...st, completed }))
+              }))
+            }
+          : s
+        )
+      })),
+      toggleChapter: (subjectId, chapterId, completed) => set((state) => ({
+        syllabus: state.syllabus.map(s => s.id === subjectId
+          ? {
+              ...s,
+              chapters: s.chapters.map(c => c.id === chapterId
+                ? {
+                    ...c,
+                    subtopics: c.subtopics.map(st => ({ ...st, completed }))
+                  }
+                : c
+              )
+            }
+          : s
+        )
+      })),
+      toggleSubtopic: (subjectId, chapterId, subtopicId, forceStatus) => set((state) => ({
         syllabus: state.syllabus.map(s => s.id === subjectId
           ? {
               ...s,
@@ -237,7 +266,7 @@ export const useAppStore = create<AppState>()(
                 ? {
                     ...c,
                     subtopics: c.subtopics.map(st => st.id === subtopicId
-                      ? { ...st, completed: !st.completed }
+                      ? { ...st, completed: forceStatus !== undefined ? forceStatus : !st.completed }
                       : st
                     )
                   }

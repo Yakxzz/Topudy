@@ -175,14 +175,14 @@ export const TimerView: React.FC<{
               {mode === 'work' ? 'Study Session Complete!' : 'Break Over!'}
             </h2>
             <p className="text-lg text-[var(--text-secondary)] mb-8">
-              Starting {intermission.nextMode === 'work' ? 'Next Study Session' : 'Break'} in {intermission.timeLeft}s
+              Autostarting in {intermission.timeLeft}s
             </p>
             <div className="flex gap-4">
               <button onClick={() => startNextPhase(intermission.nextMode)} className="px-8 py-3 rounded-full bg-[var(--accent)] text-white font-medium hover:bg-[var(--accent-hover)] transition-colors shadow-lg">
-                Start Now
+                {mode === 'work' ? 'Start Break' : 'Start Next Study Session'}
               </button>
               <button onClick={extendCurrentPhase} className="px-8 py-3 rounded-full glass-panel text-[var(--text-primary)] font-medium hover:bg-[var(--bg-secondary)] transition-colors">
-                +5 Mins
+                {mode === 'work' ? 'Extend Study by 5 minutes' : 'Extend Break by 5 minutes'}
               </button>
             </div>
           </motion.div>
@@ -207,10 +207,10 @@ export const TimerView: React.FC<{
       <motion.div 
         className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700`}
         animate={{ 
-          scale: isActive ? 1.2 : 1,
+          scale: isActive ? 1.1 : 1,
           y: isActive ? 0 : 0
         }}
-        style={{ fontSize: isActive ? 'clamp(12rem, 25vw, 25rem)' : 'clamp(8rem, 18vw, 18rem)' }}
+        style={{ fontSize: isActive ? 'clamp(15rem, 32vw, 32rem)' : 'clamp(8rem, 18vw, 18rem)' }}
       >
         {formatTime(timeLeft)}
       </motion.div>
@@ -232,7 +232,7 @@ export const TimerView: React.FC<{
             
             <button 
               onClick={toggleTimer} 
-              className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors shadow-lg ${isActive ? 'w-16 h-16 opacity-70 hover:opacity-100' : 'w-20 h-20'}`}
+              className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors shadow-lg transition-all duration-500 ${isActive ? 'w-16 h-16 opacity-50 hover:opacity-100 hover:scale-110' : 'w-20 h-20'}`}
             >
               {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-2" />}
             </button>
