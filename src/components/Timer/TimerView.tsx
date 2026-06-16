@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Play, Pause, SkipForward, Flame, BarChart2 } from 'lucide-react';
-import { useAppStore } from '../../store';
+import { Settings, Play, Pause, SkipForward, Flame, BarChart2, Lock } from 'lucide-react';
+import { useAppStore, type Theme } from '../../store';
 import { GamificationModal } from '../Gamification/GamificationModal';
 import { AnalyticsModal } from '../Analytics/AnalyticsModal';
+
+const THEME_REQUIREMENTS = [
+  { id: 'default', label: 'Matcha', req: 0, color: '#fdfbf7' },
+  { id: 'cloud-white', label: 'Cloud', req: 7, color: '#ffffff' },
+  { id: 'rosewater', label: 'Rose', req: 15, color: '#fff0f3' },
+  { id: 'midnight', label: 'Dark', req: 30, color: '#121212' },
+] as const;
 
 type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
@@ -12,17 +19,19 @@ export const TimerView: React.FC<{
 }> = ({ setIsTimerActive }) => {
   const { 
     workDuration, shortBreakDuration, longBreakDuration, 
-    cyclesBeforeLongBreak, recordStudySession 
+    cyclesBeforeLongBreak, recordStudySession,
+    currentStreak, theme, setTheme
   } = useAppStore();
   
   const [mode, setMode] = useState<TimerMode>('work');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);
   const [isActive, setIsActive] = useState(false);
   
-  // Modals
+  // Modals & Popups
   const [showSettings, setShowSettings] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGamification, setShowGamification] = useState(false);
+  const [themePopup, setThemePopup] = useState<string | null>(null);
 
   // Zen Mode Hover
   const [isHovering, setIsHovering] = useState(false);
@@ -124,10 +133,13 @@ export const TimerView: React.FC<{
 
   const toggleTimer = () => setIsActive(!isActive);
 
-  const switchMode = (newMode: TimerMode) => {
-    setMode(newMode);
-    setIsActive(false);
-    setIntermission(null);
+  const handleThemeClick = (req: number, id: string) => {
+    if (currentStreak >= req) {
+      setTheme(id as Theme);
+    } else {
+      setThemePopup(`Unlocks at a ${req}-day streak!`);
+      setTimeout(() => setThemePopup(null), 3000);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -138,7 +150,7 @@ export const TimerView: React.FC<{
 
   return (
     <div 
-      className="w-full h-full flex flex-col items-center justify-center relative"
+      className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onTouchStart={() => setIsHovering(true)}
@@ -158,8 +170,49 @@ export const TimerView: React.FC<{
             </button>
             <button onClick={() => setShowGamification(true)} className="glass-panel p-3 rounded-full hover:scale-105 transition-transform text-orange-500 flex items-center gap-2">
               <Flame size={24} fill="currentColor" />
-              <span className="font-bold text-sm">{useAppStore(s => s.currentStreak)}</span>
+              <span className="font-bold text-sm">{currentStreak}</span>
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Right: Theme Selector (Hidden when active) */}
+      <AnimatePresence>
+        {!isActive && !intermission && (
+          <motion.div 
+            className="absolute top-8 right-8 flex gap-3 z-40"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {THEME_REQUIREMENTS.map((t) => {
+              const isUnlocked = currentStreak >= t.req;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleThemeClick(t.req, t.id)}
+                  className={`relative w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-transform hover:scale-110 ${theme === t.id ? 'border-[var(--accent)] scale-110 z-10' : 'border-black/10'}`}
+                  style={{ backgroundColor: t.color }}
+                  title={t.label}
+                >
+                  {!isUnlocked && <Lock size={14} className="text-black/30" />}
+                </button>
+              );
+            })}
+            
+            {/* Theme Locked Popup */}
+            <AnimatePresence>
+              {themePopup && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute top-14 right-0 glass-panel px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-primary)] whitespace-nowrap shadow-xl"
+                >
+                  {themePopup}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -189,31 +242,29 @@ export const TimerView: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Mode Selector (Hidden when active) */}
-      <AnimatePresence>
-        {!isActive && !intermission && (
-          <motion.div 
-            className="flex gap-4 mb-12"
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-          >
-            <ModeButton active={mode === 'work'} onClick={() => switchMode('work')}>Work</ModeButton>
-            <ModeButton active={mode === 'shortBreak'} onClick={() => switchMode('shortBreak')}>Short Break</ModeButton>
-            <ModeButton active={mode === 'longBreak'} onClick={() => switchMode('longBreak')}>Long Break</ModeButton>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* The Clock */}
       <motion.div 
         className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700`}
         animate={{ 
-          scale: isActive ? 1.1 : 1,
+          scale: isActive ? 1.05 : 1,
           y: isActive ? 0 : 0
         }}
-        style={{ fontSize: isActive ? 'clamp(15rem, 32vw, 32rem)' : 'clamp(8rem, 18vw, 18rem)' }}
+        style={{ fontSize: isActive ? 'clamp(10rem, 20vw, 20rem)' : 'clamp(6rem, 14vw, 14rem)' }}
       >
         {formatTime(timeLeft)}
       </motion.div>
+
+      {/* Mode Indicator (Text instead of buttons) */}
+      <AnimatePresence>
+        {!isActive && !intermission && (
+          <motion.div 
+            className="mt-6 text-[var(--text-secondary)] font-medium tracking-widest uppercase text-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          >
+            {mode === 'work' ? 'Focus Session' : mode === 'shortBreak' ? 'Short Break' : 'Long Break'}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Controls (Hidden when active unless hovering) */}
       <AnimatePresence>
@@ -232,13 +283,21 @@ export const TimerView: React.FC<{
             
             <button 
               onClick={toggleTimer} 
-              className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors shadow-lg transition-all duration-500 ${isActive ? 'w-16 h-16 opacity-50 hover:opacity-100 hover:scale-110' : 'w-20 h-20'}`}
+              className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] shadow-lg transition-all duration-500 ${isActive ? 'w-16 h-16 opacity-50 hover:opacity-100 hover:scale-110' : 'w-20 h-20'}`}
             >
               {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-2" />}
             </button>
             
             {!isActive && (
-              <button onClick={() => switchMode('shortBreak')} className="p-4 rounded-full hover:bg-[var(--bg-secondary)] transition-colors">
+              <button onClick={() => {
+                // Skip to next phase automatically
+                if (mode === 'work') {
+                  const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
+                  startNextPhase(isLongBreakNext ? 'longBreak' : 'shortBreak');
+                } else {
+                  startNextPhase('work');
+                }
+              }} className="p-4 rounded-full hover:bg-[var(--bg-secondary)] transition-colors">
                 <SkipForward size={28} />
               </button>
             )}
@@ -254,15 +313,6 @@ export const TimerView: React.FC<{
     </div>
   );
 };
-
-const ModeButton = ({ active, children, onClick }: { active: boolean, children: React.ReactNode, onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${active ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-md' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
-  >
-    {children}
-  </button>
-);
 
 const SettingsModal = ({ onClose }: { onClose: () => void }) => {
   const { workDuration, shortBreakDuration, longBreakDuration, cyclesBeforeLongBreak, setTimerSettings } = useAppStore();

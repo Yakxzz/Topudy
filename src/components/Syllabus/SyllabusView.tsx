@@ -222,10 +222,7 @@ const ChapterAccordion = ({ subjectId, chapter, confirmAction }: { subjectId: st
   };
 
   const handleToggleSubtopic = (sub: any) => {
-    const actionWord = sub.completed ? 'uncheck' : 'check';
-    confirmAction(`Confirm Action`, `Are you sure you want to ${actionWord} "${sub.title}"?`, () => {
-      toggleSubtopic(subjectId, chapter.id, sub.id, !sub.completed);
-    });
+    toggleSubtopic(subjectId, chapter.id, sub.id, !sub.completed);
   };
 
   const handleDeleteSubtopic = (e: React.MouseEvent, sub: any) => {
