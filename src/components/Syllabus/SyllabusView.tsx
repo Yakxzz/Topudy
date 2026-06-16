@@ -49,8 +49,8 @@ export const SyllabusView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto pb-32">
-      <h1 className="text-4xl font-serif text-[var(--text-primary)] mb-8">Syllabus Tracker</h1>
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 pb-32">
+      <h1 className="text-3xl sm:text-4xl font-serif text-[var(--text-primary)] mb-8">Syllabus Tracker</h1>
 
       {/* Progress Bar */}
       <div className="mb-12 glass-panel p-6 rounded-3xl border border-[var(--border)]">

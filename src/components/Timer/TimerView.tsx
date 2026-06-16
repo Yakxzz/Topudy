@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Play, Pause, SkipForward, Flame, BarChart2, Lock } from 'lucide-react';
 import { useAppStore, type Theme } from '../../store';
@@ -26,6 +26,7 @@ export const TimerView: React.FC<{
   const [mode, setMode] = useState<TimerMode>('work');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);
   const [isActive, setIsActive] = useState(false);
+  const lastRecordedTimeLeftRef = useRef(workDuration * 60);
   
   // Modals & Popups
   const [showSettings, setShowSettings] = useState(false);
@@ -94,19 +95,40 @@ export const TimerView: React.FC<{
     };
   }, [isActive, timeLeft, intermission]);
 
+  const prevDurations = useRef({ workDuration, shortBreakDuration, longBreakDuration });
+
   useEffect(() => {
-    // Reset timer when mode or durations change (if not active)
-    if (!isActive && !intermission) {
-      if (mode === 'work') setTimeLeft(workDuration * 60);
-      else if (mode === 'shortBreak') setTimeLeft(shortBreakDuration * 60);
-      else if (mode === 'longBreak') setTimeLeft(longBreakDuration * 60);
+    const changed = 
+      prevDurations.current.workDuration !== workDuration ||
+      prevDurations.current.shortBreakDuration !== shortBreakDuration ||
+      prevDurations.current.longBreakDuration !== longBreakDuration;
+      
+    if (changed) {
+      if (!isActive && !intermission) {
+        if (mode === 'work') {
+          setTimeLeft(workDuration * 60);
+          lastRecordedTimeLeftRef.current = workDuration * 60;
+        }
+        else if (mode === 'shortBreak') setTimeLeft(shortBreakDuration * 60);
+        else if (mode === 'longBreak') setTimeLeft(longBreakDuration * 60);
+      }
+      prevDurations.current = { workDuration, shortBreakDuration, longBreakDuration };
     }
   }, [workDuration, shortBreakDuration, longBreakDuration, mode, isActive, intermission]);
 
+  const recordElapsed = (currentTimeLeft: number) => {
+    if (mode === 'work') {
+      const elapsed = lastRecordedTimeLeftRef.current - currentTimeLeft;
+      if (elapsed > 0) {
+        recordStudySession(elapsed);
+        lastRecordedTimeLeftRef.current = currentTimeLeft;
+      }
+    }
+  };
+
   const handlePhaseComplete = () => {
     if (mode === 'work') {
-      // Record session!
-      recordStudySession(workDuration * 60);
+      recordElapsed(0);
       
       const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
       setIntermission({
@@ -131,21 +153,37 @@ export const TimerView: React.FC<{
 
   const startNextPhase = (nextMode: TimerMode) => {
     setMode(nextMode);
-    if (nextMode === 'work') setTimeLeft(workDuration * 60);
-    else if (nextMode === 'shortBreak') setTimeLeft(shortBreakDuration * 60);
-    else if (nextMode === 'longBreak') setTimeLeft(longBreakDuration * 60);
+    let newTime = 0;
+    if (nextMode === 'work') newTime = workDuration * 60;
+    else if (nextMode === 'shortBreak') newTime = shortBreakDuration * 60;
+    else if (nextMode === 'longBreak') newTime = longBreakDuration * 60;
+    
+    setTimeLeft(newTime);
+    if (nextMode === 'work') {
+      lastRecordedTimeLeftRef.current = newTime;
+    }
     setIsActive(true);
     setIntermission(null);
   };
 
   const extendCurrentPhase = () => {
     // Extend by 5 minutes
-    setTimeLeft(5 * 60);
+    const newTime = 5 * 60;
+    setTimeLeft(newTime);
+    if (mode === 'work') {
+      lastRecordedTimeLeftRef.current = newTime;
+    }
     setIsActive(true);
     setIntermission(null);
   };
 
-  const toggleTimer = () => setIsActive(!isActive);
+  const toggleTimer = () => {
+    if (isActive) {
+      // We are pausing, record elapsed time
+      recordElapsed(timeLeft);
+    }
+    setIsActive(!isActive);
+  };
 
   const handleThemeClick = (req: number, id: string) => {
     if (currentStreak >= req) {
@@ -175,7 +213,7 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {!isActive && !intermission && (
           <motion.div 
-            className="absolute top-8 left-8 flex gap-4 z-40"
+            className="absolute top-4 sm:top-8 left-4 sm:left-8 flex gap-2 sm:gap-4 z-40"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -195,7 +233,7 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {!isActive && !intermission && (
           <motion.div 
-            className="absolute top-8 right-8 flex gap-3 z-40"
+            className="absolute top-4 sm:top-8 right-4 sm:right-8 flex gap-2 sm:gap-3 z-40"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -308,10 +346,7 @@ export const TimerView: React.FC<{
               <button onClick={() => {
                 // Skip to next phase automatically
                 if (mode === 'work') {
-                  const elapsed = (workDuration * 60) - timeLeft;
-                  if (elapsed > 0) {
-                    recordStudySession(elapsed);
-                  }
+                  recordElapsed(timeLeft);
                   const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
                   startNextPhase(isLongBreakNext ? 'longBreak' : 'shortBreak');
                 } else {

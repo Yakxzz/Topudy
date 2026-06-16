@@ -98,8 +98,8 @@ export const TasksView: React.FC = () => {
   const currentChapter = currentSubject?.chapters.find(c => c.id === selectedChapter);
 
   return (
-    <div className="w-full max-w-3xl mx-auto pb-32">
-      <h1 className="text-4xl font-serif text-[var(--text-primary)] mb-8">Tasks</h1>
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 pb-32">
+      <h1 className="text-3xl sm:text-4xl font-serif text-[var(--text-primary)] mb-8">Tasks</h1>
 
       <div className="flex gap-8 mb-8 border-b border-[var(--border)] pb-2">
         <button 
