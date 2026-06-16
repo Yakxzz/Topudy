@@ -33,9 +33,6 @@ export const TimerView: React.FC<{
   const [showGamification, setShowGamification] = useState(false);
   const [themePopup, setThemePopup] = useState<string | null>(null);
 
-  // Zen Mode Hover
-  const [isHovering, setIsHovering] = useState(false);
-  
   // Intermission State
   const [intermission, setIntermission] = useState<{ active: boolean, nextMode: TimerMode, timeLeft: number } | null>(null);
 
@@ -151,9 +148,6 @@ export const TimerView: React.FC<{
   return (
     <div 
       className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-      onTouchStart={() => setIsHovering(true)}
     >
       
       {/* Top Bar: Analytics & Gamification (Hidden when active) */}
