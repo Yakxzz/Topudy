@@ -16,19 +16,29 @@ export const SyllabusView: React.FC = () => {
   };
 
   // Progress calculation
-  let totalSubtopics = 0;
-  let completedSubtopics = 0;
+  let totalItems = 0;
+  let completedItems = 0;
 
   syllabus.forEach(subject => {
-    subject.chapters.forEach(chapter => {
-      chapter.subtopics.forEach(sub => {
-        totalSubtopics++;
-        if (sub.completed) completedSubtopics++;
+    if (subject.chapters.length === 0) {
+      totalItems++;
+      if (subject.completed) completedItems++;
+    } else {
+      subject.chapters.forEach(chapter => {
+        if (chapter.subtopics.length === 0) {
+          totalItems++;
+          if (chapter.completed) completedItems++;
+        } else {
+          chapter.subtopics.forEach(sub => {
+            totalItems++;
+            if (sub.completed) completedItems++;
+          });
+        }
       });
-    });
+    }
   });
 
-  const progress = totalSubtopics === 0 ? 0 : Math.round((completedSubtopics / totalSubtopics) * 100);
+  const progress = totalItems === 0 ? 0 : Math.round((completedItems / totalItems) * 100);
 
   const handleAddSubject = () => {
     if (newSubjectTitle.trim()) {
@@ -119,7 +129,7 @@ const SubjectAccordion = ({ subject, confirmAction }: { subject: any, confirmAct
 
   const totalSubtopics = subject.chapters.reduce((acc: number, c: any) => acc + c.subtopics.length, 0);
   const completedSubtopics = subject.chapters.reduce((acc: number, c: any) => acc + c.subtopics.filter((st: any) => st.completed).length, 0);
-  const isCompleted = totalSubtopics > 0 && totalSubtopics === completedSubtopics;
+  const isCompleted = totalSubtopics > 0 ? totalSubtopics === completedSubtopics : !!subject.completed;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -204,7 +214,7 @@ const ChapterAccordion = ({ subjectId, chapter, confirmAction }: { subjectId: st
 
   const totalSubtopics = chapter.subtopics.length;
   const completedSubtopics = chapter.subtopics.filter((st: any) => st.completed).length;
-  const isCompleted = totalSubtopics > 0 && totalSubtopics === completedSubtopics;
+  const isCompleted = totalSubtopics > 0 ? totalSubtopics === completedSubtopics : !!chapter.completed;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();

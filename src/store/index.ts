@@ -22,12 +22,14 @@ export interface SyllabusItem {
 export interface SyllabusChapter {
   id: string
   title: string
+  completed?: boolean
   subtopics: SyllabusItem[]
 }
 
 export interface SyllabusSubject {
   id: string
   title: string
+  completed?: boolean
   chapters: SyllabusChapter[]
 }
 
@@ -202,14 +204,14 @@ export const useAppStore = create<AppState>()(
 
       syllabus: [],
       addSubject: (title) => set((state) => ({
-        syllabus: [...state.syllabus, { id: crypto.randomUUID(), title, chapters: [] }]
+        syllabus: [...state.syllabus, { id: crypto.randomUUID(), title, completed: false, chapters: [] }]
       })),
       deleteSubject: (subjectId) => set((state) => ({
         syllabus: state.syllabus.filter(s => s.id !== subjectId)
       })),
       addChapter: (subjectId, title) => set((state) => ({
         syllabus: state.syllabus.map(s => s.id === subjectId 
-          ? { ...s, chapters: [...s.chapters, { id: crypto.randomUUID(), title, subtopics: [] }] }
+          ? { ...s, chapters: [...s.chapters, { id: crypto.randomUUID(), title, completed: false, subtopics: [] }] }
           : s
         )
       })),
@@ -235,8 +237,10 @@ export const useAppStore = create<AppState>()(
         syllabus: state.syllabus.map(s => s.id === subjectId
           ? {
               ...s,
+              completed,
               chapters: s.chapters.map(c => ({
                 ...c,
+                completed,
                 subtopics: c.subtopics.map(st => ({ ...st, completed }))
               }))
             }
@@ -250,6 +254,7 @@ export const useAppStore = create<AppState>()(
               chapters: s.chapters.map(c => c.id === chapterId
                 ? {
                     ...c,
+                    completed,
                     subtopics: c.subtopics.map(st => ({ ...st, completed }))
                   }
                 : c

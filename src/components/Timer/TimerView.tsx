@@ -244,7 +244,8 @@ export const TimerView: React.FC<{
 
       {/* The Clock */}
       <motion.div 
-        className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700`}
+        onClick={toggleTimer}
+        className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700 cursor-pointer`}
         animate={{ 
           scale: isActive ? 1.05 : 1,
           y: isActive ? 0 : 0
@@ -266,9 +267,9 @@ export const TimerView: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Controls (Hidden when active unless hovering) */}
+      {/* Controls (Hidden when active) */}
       <AnimatePresence>
-        {(!isActive || isHovering) && !intermission && (
+        {!isActive && !intermission && (
           <motion.div 
             className="flex items-center gap-8 mt-16 text-[var(--text-secondary)] absolute bottom-32"
             initial={{ opacity: 0, y: 20 }}
@@ -292,6 +293,10 @@ export const TimerView: React.FC<{
               <button onClick={() => {
                 // Skip to next phase automatically
                 if (mode === 'work') {
+                  const elapsed = (workDuration * 60) - timeLeft;
+                  if (elapsed > 0) {
+                    recordStudySession(elapsed);
+                  }
                   const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
                   startNextPhase(isLongBreakNext ? 'longBreak' : 'shortBreak');
                 } else {
