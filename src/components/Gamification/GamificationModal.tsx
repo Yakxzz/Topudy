@@ -1,7 +1,7 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { X, Flame, Lock, Unlock, ShieldAlert } from 'lucide-react';
-import { useAppStore, Theme } from '../../store';
+import { useAppStore, type Theme } from '../../store';
 
 const THEME_REQUIREMENTS = [
   { id: 'default', label: 'Matcha Light', req: 0, color: '#fdfbf7' },

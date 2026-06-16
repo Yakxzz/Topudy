@@ -82,7 +82,7 @@ const getTodayDateString = () => new Date().toISOString().split('T')[0]
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       theme: 'default',
       setTheme: (theme) => set({ theme }),
 

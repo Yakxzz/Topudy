@@ -87,7 +87,7 @@ export const TasksView: React.FC = () => {
       const chapter = subject?.chapters.find(c => c.id === task.linkedChapterId);
       if (chapter) text += ` > ${chapter.title}`;
       if (task.linkedSubtopicId) {
-        const sub = chapter.subtopics.find(st => st.id === task.linkedSubtopicId);
+        const sub = chapter?.subtopics.find((st: any) => st.id === task.linkedSubtopicId);
         if (sub) text += ` > ${sub.title}`;
       }
     }
