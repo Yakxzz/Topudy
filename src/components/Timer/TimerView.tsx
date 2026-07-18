@@ -169,7 +169,7 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {!isActive && (
           <motion.div 
-            className="absolute top-4 sm:top-8 left-4 sm:left-8 flex gap-2 sm:gap-4 z-40 flex-wrap max-w-[60vw]"
+            className="absolute top-4 sm:top-8 left-4 sm:left-8 flex flex-col sm:flex-row gap-2 sm:gap-4 z-40"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -195,7 +195,7 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {!isActive && !isLocked && (
           <motion.div 
-            className="absolute top-4 sm:top-8 right-16 sm:right-24 flex bg-[var(--bg-secondary)] rounded-full p-1 z-40 border border-[var(--border)]"
+            className="absolute top-24 left-1/2 -translate-x-1/2 flex bg-[var(--bg-secondary)] rounded-full p-1 z-40 border border-[var(--border)] shadow-sm"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}

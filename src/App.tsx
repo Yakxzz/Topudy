@@ -30,7 +30,6 @@ function App() {
     hasSeenSplash
   } = useAppStore();
 
-  const showSplash = !hasSeenSplash;
   const [hasShownPaywallThisSession, setHasShownPaywallThisSession] = useState(false);
 
   useEffect(() => {
@@ -98,7 +97,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-900 text-white overflow-hidden">
+    <div className="h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden">
       <SplashScreen />
       
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} hideNav={isTimerActive}>
@@ -108,7 +107,7 @@ function App() {
       </Layout>
 
       <AnimatePresence>
-        {!hasSeenSplash && !showSplash && !userName && (
+        {!userName && (
           <OnboardingModal />
         )}
         {showPaywall && (
