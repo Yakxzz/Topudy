@@ -1,24 +1,9 @@
-
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flame, Unlock, ShieldAlert, Award } from 'lucide-react';
-import { useAppStore, type Theme } from '../../store';
-import { CertificatesGallery } from './CertificatesGallery';
-import { useState } from 'react';
-
-const THEMES = [
-  { id: 'default', label: 'Matcha Light', color: '#fdfbf7' },
-  { id: 'cloud-white', label: 'Cloud White', color: '#ffffff' },
-  { id: 'rosewater', label: 'Rosewater', color: '#fff0f3' },
-  { id: 'midnight', label: 'Midnight Dark', color: '#121212' },
-  { id: 'mint', label: 'Mint Breeze', color: '#f0fff4' },
-  { id: 'lavender', label: 'Lavender', color: '#f3e8ff' },
-  { id: 'coffee', label: 'Coffee', color: '#fff8f0' },
-  { id: 'ocean', label: 'Ocean', color: '#e0f2fe' },
-] as const;
+import { motion } from 'framer-motion';
+import { X, Flame, ShieldAlert } from 'lucide-react';
+import { useAppStore } from '../../store';
 
 export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
-  const { currentStreak, previousStreakToRestore, streakRestoresAvailable, restoreStreak, theme, setTheme } = useAppStore();
-  const [showGallery, setShowGallery] = useState(false);
+  const { currentStreak, previousStreakToRestore, streakRestoresAvailable, restoreStreak } = useAppStore();
 
   return (
     <motion.div 
@@ -34,7 +19,7 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
         </button>
 
         {/* Streak Header */}
-        <div className="flex flex-col items-center justify-center mb-10 mt-4">
+        <div className="flex flex-col items-center justify-center mb-6 mt-4">
           <motion.div 
             className="w-24 h-24 rounded-full glass-panel flex items-center justify-center mb-4 text-orange-500 shadow-inner"
             animate={{ scale: [1, 1.05, 1] }}
@@ -43,12 +28,12 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
             <Flame size={48} fill="currentColor" />
           </motion.div>
           <h2 className="text-4xl font-serif text-[var(--text-primary)]">{currentStreak} <span className="text-xl text-[var(--text-secondary)] font-sans">Days</span></h2>
-          <p className="text-sm text-[var(--text-secondary)] mt-2">Study 30+ mins daily to grow your streak!</p>
+          <p className="text-sm text-[var(--text-secondary)] mt-2 text-center">Study 30+ mins daily to grow your streak!</p>
         </div>
 
         {/* Restore Mechanic */}
         {previousStreakToRestore > 0 && streakRestoresAvailable > 0 && (
-          <div className="mb-8 p-4 border border-orange-200 bg-orange-50 rounded-2xl flex items-center justify-between">
+          <div className="p-4 border border-orange-200 bg-orange-50 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ShieldAlert className="text-orange-500" size={24} />
               <div>
@@ -61,47 +46,7 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
             </button>
           </div>
         )}
-
-        {/* Theme Unlocks */}
-        <div>
-          <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-4">Aesthetics</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-[30vh] overflow-y-auto hide-scrollbar p-1">
-            {THEMES.map((t) => {
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id as Theme)}
-                  className={`relative p-3 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer hover:scale-105
-                    ${theme === t.id ? 'border-[var(--accent)] bg-[var(--bg-secondary)] shadow-md' : 'border-[var(--border)] glass-panel hover:bg-[var(--bg-secondary)]'}
-                  `}
-                >
-                  <div className="w-8 h-8 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: t.color }} />
-                  <span className="text-[10px] font-bold text-[var(--text-primary)] text-center leading-tight">{t.label}</span>
-                  {theme === t.id && (
-                     <div className="absolute top-2 right-2 text-[var(--accent)]">
-                       <Unlock size={12} />
-                     </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Certificates Gallery Button */}
-        <div className="mt-8">
-          <button 
-            onClick={() => setShowGallery(true)}
-            className="w-full py-4 rounded-2xl glass-panel border border-[var(--accent)] flex items-center justify-center gap-3 hover:bg-[var(--accent)] hover:text-white text-[var(--accent)] transition-all font-bold group shadow-sm"
-          >
-            <Award size={24} className="group-hover:scale-110 transition-transform" />
-            View Certificate Gallery
-          </button>
-        </div>
       </motion.div>
-      <AnimatePresence>
-        {showGallery && <CertificatesGallery onClose={() => setShowGallery(false)} />}
-      </AnimatePresence>
     </motion.div>
   );
 };

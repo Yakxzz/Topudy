@@ -11,7 +11,7 @@ const TRACKS = [
 ];
 
 export const AudioPlayer = () => {
-  const { audioPlaying, audioTrack, audioVolume, setAudioState } = useAppStore();
+  const { audioPlaying, audioTrack, audioVolume, setAudioState, isPremium, trialTimeUsed } = useAppStore();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -36,9 +36,12 @@ export const AudioPlayer = () => {
 
   const togglePlay = () => setAudioState(!audioPlaying);
 
+  const isLocked = !isPremium && trialTimeUsed >= 600;
+  if (isLocked) return null;
+
   return (
     <>
-      <audio ref={audioRef} src={currentTrackUrl} loop />
+      <audio ref={audioRef} src={currentTrackUrl} loop preload="none" />
       
       <div className="fixed bottom-32 right-8 z-40">
         <AnimatePresence>

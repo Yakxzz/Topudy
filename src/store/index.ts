@@ -43,14 +43,20 @@ export interface AppState {
   theme: Theme
   setTheme: (theme: Theme) => void
 
+  isPremium: boolean
+  premiumType: 'none' | 'lifetime' | 'monthly' | 'yearly'
+  trialTimeUsed: number
+  activatePremium: (type: 'lifetime' | 'monthly' | 'yearly') => void
+  incrementTrialTime: () => void
+
+  showPaywall: boolean
+  setShowPaywall: (show: boolean) => void
+
   hasSeenSplash: boolean
   setHasSeenSplash: (val: boolean) => void
 
   workDuration: number
-  shortBreakDuration: number
-  longBreakDuration: number
-  cyclesBeforeLongBreak: number
-  setTimerSettings: (work: number, short: number, long: number, cycles: number) => void
+  setTimerSettings: (work: number) => void
 
   studySessions: StudySession[]
   recordStudySession: (durationSeconds: number) => void
@@ -99,8 +105,19 @@ const getTodayDateString = () => new Date().toISOString().split('T')[0]
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      theme: 'default',
+      theme: 'ocean',
       setTheme: (theme) => set({ theme }),
+
+      isPremium: false,
+      premiumType: 'none',
+      trialTimeUsed: 0,
+      activatePremium: (type) => set({ isPremium: true, premiumType: type }),
+      incrementTrialTime: () => set((state) => ({ 
+        trialTimeUsed: state.isPremium ? state.trialTimeUsed : state.trialTimeUsed + 1 
+      })),
+
+      showPaywall: false,
+      setShowPaywall: (show) => set({ showPaywall: show }),
 
       userName: '',
       setUserName: (userName) => set({ userName }),
@@ -112,7 +129,7 @@ export const useAppStore = create<AppState>()(
           : [...state.unlockedCertificates, certId]
       })),
 
-      timerMode: 'timer',
+      timerMode: 'study',
       setTimerMode: (timerMode) => set({ timerMode }),
 
       audioPlaying: false,
@@ -128,11 +145,7 @@ export const useAppStore = create<AppState>()(
       setHasSeenSplash: (hasSeenSplash) => set({ hasSeenSplash }),
 
       workDuration: 25,
-      shortBreakDuration: 5,
-      longBreakDuration: 15,
-      cyclesBeforeLongBreak: 4,
-      setTimerSettings: (workDuration, shortBreakDuration, longBreakDuration, cyclesBeforeLongBreak) => 
-        set({ workDuration, shortBreakDuration, longBreakDuration, cyclesBeforeLongBreak }),
+      setTimerSettings: (workDuration) => set({ workDuration }),
 
       studySessions: [],
       currentStreak: 0,

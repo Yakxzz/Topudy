@@ -4,7 +4,7 @@ import { useAppStore } from '../../store';
 
 export const OnboardingModal = () => {
   const [name, setName] = useState('');
-  const { userName, setUserName } = useAppStore();
+  const { userName, setUserName, setShowPaywall } = useAppStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +52,13 @@ export const OnboardingModal = () => {
               className="w-full py-4 rounded-xl bg-[var(--accent)] text-white font-bold tracking-widest uppercase hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
             >
               Confirm
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setShowPaywall(true)}
+              className="w-full mt-3 py-4 rounded-xl border border-[var(--accent)] text-[var(--accent)] font-bold tracking-widest uppercase hover:bg-[var(--accent)] hover:text-[var(--bg-primary)] transition-colors"
+            >
+              Have a key? Activate Premium
             </button>
           </form>
         </motion.div>

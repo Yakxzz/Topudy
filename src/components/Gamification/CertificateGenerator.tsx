@@ -9,7 +9,7 @@ interface Props {
 
 export const CertificateGenerator: React.FC<Props> = ({ certId, onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { userName } = useAppStore();
+  const { userName, isPremium } = useAppStore();
   
   const cert = CERTIFICATES.find(c => c.id === certId);
 
@@ -51,7 +51,29 @@ export const CertificateGenerator: React.FC<Props> = ({ certId, onClose }) => {
     // Name
     ctx.font = 'bold 60px "Playfair Display", serif';
     ctx.fillStyle = '#c68a53'; // Gold name
-    ctx.fillText(userName.toUpperCase() || 'STUDENT', canvas.width / 2, 350);
+    const name = userName.toUpperCase() || 'STUDENT';
+    ctx.fillText(name, canvas.width / 2, 350);
+
+    // Draw blue tick if premium
+    if (isPremium) {
+      const textMetrics = ctx.measureText(name);
+      const nameWidth = textMetrics.width;
+      
+      ctx.save();
+      ctx.fillStyle = '#3b82f6'; // blue-500
+      
+      const x = (canvas.width / 2) + (nameWidth / 2) + 40;
+      const y = 330;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText('✓', x, y + 8);
+      ctx.restore();
+    }
 
     // Separator line
     ctx.beginPath();
