@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Music, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useAppStore } from '../../store';

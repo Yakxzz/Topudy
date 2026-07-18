@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Play, Pause, SkipForward, Flame, BarChart2, Square, Clock, Hourglass } from 'lucide-react';
 import { useAppStore } from '../../store';

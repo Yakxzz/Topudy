@@ -1,6 +1,6 @@
 
-import { motion } from 'framer-motion';
-import { X, Flame, Lock, Unlock, ShieldAlert, Award } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Flame, Unlock, ShieldAlert, Award } from 'lucide-react';
 import { useAppStore, type Theme } from '../../store';
 import { CertificatesGallery } from './CertificatesGallery';
 import { useState } from 'react';

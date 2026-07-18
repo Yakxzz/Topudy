@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Award, Lock } from 'lucide-react';
 import { useAppStore } from '../../store';
-import { CERTIFICATES, CertificateDef } from './certificatesData';
+import { CERTIFICATES, type CertificateDef } from './certificatesData';
 import { CertificateGenerator } from './CertificateGenerator';
 
 export const CertificatesGallery = ({ onClose }: { onClose: () => void }) => {
