@@ -1,17 +1,24 @@
 
 import { motion } from 'framer-motion';
-import { X, Flame, Lock, Unlock, ShieldAlert } from 'lucide-react';
+import { X, Flame, Lock, Unlock, ShieldAlert, Award } from 'lucide-react';
 import { useAppStore, type Theme } from '../../store';
+import { CertificatesGallery } from './CertificatesGallery';
+import { useState } from 'react';
 
-const THEME_REQUIREMENTS = [
-  { id: 'default', label: 'Matcha Light', req: 0, color: '#fdfbf7' },
-  { id: 'cloud-white', label: 'Cloud White', req: 7, color: '#ffffff' },
-  { id: 'rosewater', label: 'Rosewater', req: 15, color: '#fff0f3' },
-  { id: 'midnight', label: 'Midnight Dark', req: 30, color: '#121212' },
+const THEMES = [
+  { id: 'default', label: 'Matcha Light', color: '#fdfbf7' },
+  { id: 'cloud-white', label: 'Cloud White', color: '#ffffff' },
+  { id: 'rosewater', label: 'Rosewater', color: '#fff0f3' },
+  { id: 'midnight', label: 'Midnight Dark', color: '#121212' },
+  { id: 'mint', label: 'Mint Breeze', color: '#f0fff4' },
+  { id: 'lavender', label: 'Lavender', color: '#f3e8ff' },
+  { id: 'coffee', label: 'Coffee', color: '#fff8f0' },
+  { id: 'ocean', label: 'Ocean', color: '#e0f2fe' },
 ] as const;
 
 export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
   const { currentStreak, previousStreakToRestore, streakRestoresAvailable, restoreStreak, theme, setTheme } = useAppStore();
+  const [showGallery, setShowGallery] = useState(false);
 
   return (
     <motion.div 
@@ -58,40 +65,43 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
         {/* Theme Unlocks */}
         <div>
           <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-4">Aesthetics</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {THEME_REQUIREMENTS.map((t) => {
-              const isUnlocked = currentStreak >= t.req;
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-[30vh] overflow-y-auto hide-scrollbar p-1">
+            {THEMES.map((t) => {
               return (
                 <button
                   key={t.id}
-                  onClick={() => isUnlocked && setTheme(t.id as Theme)}
-                  className={`relative p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-2
-                    ${isUnlocked ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-60 grayscale'}
-                    ${theme === t.id ? 'border-[var(--accent)] bg-[var(--bg-secondary)]' : 'border-[var(--border)] glass-panel'}
+                  onClick={() => setTheme(t.id as Theme)}
+                  className={`relative p-3 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer hover:scale-105
+                    ${theme === t.id ? 'border-[var(--accent)] bg-[var(--bg-secondary)] shadow-md' : 'border-[var(--border)] glass-panel hover:bg-[var(--bg-secondary)]'}
                   `}
                 >
                   <div className="w-8 h-8 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: t.color }} />
-                  <span className="text-xs font-bold text-[var(--text-primary)]">{t.label}</span>
-                  {!isUnlocked ? (
-                    <div className="absolute top-2 right-2 text-[var(--text-secondary)]">
-                      <Lock size={14} />
-                    </div>
-                  ) : (
-                    theme === t.id && (
-                       <div className="absolute top-2 right-2 text-[var(--accent)]">
-                         <Unlock size={14} />
-                       </div>
-                    )
-                  )}
-                  {!isUnlocked && (
-                    <span className="text-[10px] text-[var(--text-secondary)]">{t.req} Days Req.</span>
+                  <span className="text-[10px] font-bold text-[var(--text-primary)] text-center leading-tight">{t.label}</span>
+                  {theme === t.id && (
+                     <div className="absolute top-2 right-2 text-[var(--accent)]">
+                       <Unlock size={12} />
+                     </div>
                   )}
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Certificates Gallery Button */}
+        <div className="mt-8">
+          <button 
+            onClick={() => setShowGallery(true)}
+            className="w-full py-4 rounded-2xl glass-panel border border-[var(--accent)] flex items-center justify-center gap-3 hover:bg-[var(--accent)] hover:text-white text-[var(--accent)] transition-all font-bold group shadow-sm"
+          >
+            <Award size={24} className="group-hover:scale-110 transition-transform" />
+            View Certificate Gallery
+          </button>
+        </div>
       </motion.div>
+      <AnimatePresence>
+        {showGallery && <CertificatesGallery onClose={() => setShowGallery(false)} />}
+      </AnimatePresence>
     </motion.div>
   );
 };

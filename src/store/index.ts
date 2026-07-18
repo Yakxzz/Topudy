@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type Theme = 'default' | 'cloud-white' | 'rosewater' | 'midnight'
+export type Theme = 'default' | 'cloud-white' | 'rosewater' | 'midnight' | 'mint' | 'lavender' | 'coffee' | 'ocean'
 
 export interface Task {
   id: string
@@ -78,6 +78,20 @@ export interface AppState {
   toggleChapter: (subjectId: string, chapterId: string, completed: boolean) => void
   toggleSubtopic: (subjectId: string, chapterId: string, subtopicId: string, forceStatus?: boolean) => void
   deleteSubtopic: (subjectId: string, chapterId: string, subtopicId: string) => void
+
+  userName: string
+  setUserName: (name: string) => void
+
+  unlockedCertificates: string[]
+  unlockCertificate: (certId: string) => void
+
+  timerMode: 'study' | 'timer'
+  setTimerMode: (mode: 'study' | 'timer') => void
+
+  audioPlaying: boolean
+  audioTrack: string
+  audioVolume: number
+  setAudioState: (playing: boolean, track?: string, volume?: number) => void
 }
 
 const getTodayDateString = () => new Date().toISOString().split('T')[0]
@@ -87,6 +101,28 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       theme: 'default',
       setTheme: (theme) => set({ theme }),
+
+      userName: '',
+      setUserName: (userName) => set({ userName }),
+
+      unlockedCertificates: [],
+      unlockCertificate: (certId) => set((state) => ({
+        unlockedCertificates: state.unlockedCertificates.includes(certId) 
+          ? state.unlockedCertificates 
+          : [...state.unlockedCertificates, certId]
+      })),
+
+      timerMode: 'timer',
+      setTimerMode: (timerMode) => set({ timerMode }),
+
+      audioPlaying: false,
+      audioTrack: 'lofi',
+      audioVolume: 0.5,
+      setAudioState: (playing, track, volume) => set((state) => ({ 
+        audioPlaying: playing, 
+        audioTrack: track ?? state.audioTrack,
+        audioVolume: volume ?? state.audioVolume
+      })),
 
       hasSeenSplash: false,
       setHasSeenSplash: (hasSeenSplash) => set({ hasSeenSplash }),

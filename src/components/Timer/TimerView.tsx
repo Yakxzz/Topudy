@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Play, Pause, SkipForward, Flame, BarChart2, Lock } from 'lucide-react';
-import { useAppStore, type Theme } from '../../store';
+import { Settings, Play, Pause, SkipForward, Flame, BarChart2, Square, Clock, Hourglass } from 'lucide-react';
+import { useAppStore } from '../../store';
 import { GamificationModal } from '../Gamification/GamificationModal';
 import { AnalyticsModal } from '../Analytics/AnalyticsModal';
+import { AudioPlayer } from './AudioPlayer';
 
-const THEME_REQUIREMENTS = [
-  { id: 'default', label: 'Matcha', req: 0, color: '#fdfbf7' },
-  { id: 'cloud-white', label: 'Cloud', req: 7, color: '#ffffff' },
-  { id: 'rosewater', label: 'Rose', req: 15, color: '#fff0f3' },
-  { id: 'midnight', label: 'Dark', req: 30, color: '#121212' },
-] as const;
-
-type TimerMode = 'work' | 'shortBreak' | 'longBreak';
+type PhaseMode = 'work' | 'shortBreak' | 'longBreak';
 
 export const TimerView: React.FC<{
   setIsTimerActive: (active: boolean) => void
@@ -20,11 +14,12 @@ export const TimerView: React.FC<{
   const { 
     workDuration, shortBreakDuration, longBreakDuration, 
     cyclesBeforeLongBreak, recordStudySession,
-    currentStreak, theme, setTheme
+    currentStreak, timerMode, setTimerMode
   } = useAppStore();
   
-  const [mode, setMode] = useState<TimerMode>('work');
+  const [phase, setPhase] = useState<PhaseMode>('work');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);
+  const [studyTime, setStudyTime] = useState(0); // For stopwatch mode
   const [isActive, setIsActive] = useState(false);
   const lastRecordedTimeLeftRef = useRef(workDuration * 60);
   
@@ -32,7 +27,6 @@ export const TimerView: React.FC<{
   const [showSettings, setShowSettings] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGamification, setShowGamification] = useState(false);
-  const [themePopup, setThemePopup] = useState<string | null>(null);
 
   // Zen Mode Hover
   const [isHovering, setIsHovering] = useState(false);
@@ -52,7 +46,7 @@ export const TimerView: React.FC<{
   }, [idleTimer]);
 
   // Intermission State
-  const [intermission, setIntermission] = useState<{ active: boolean, nextMode: TimerMode, timeLeft: number } | null>(null);
+  const [intermission, setIntermission] = useState<{ active: boolean, nextMode: PhaseMode, timeLeft: number } | null>(null);
 
   // Cycle Tracking
   const [currentCycle, setCurrentCycle] = useState(1);
@@ -70,7 +64,6 @@ export const TimerView: React.FC<{
         setIntermission(prev => {
           if (!prev) return null;
           if (prev.timeLeft <= 1) {
-            // Auto start next mode if intermission expires
             startNextPhase(prev.nextMode);
             return null;
           }
@@ -80,44 +73,56 @@ export const TimerView: React.FC<{
       return () => { if (interval) clearInterval(interval); };
     }
 
-    // Normal Timer Logic
-    if (isActive && !intermission && timeLeft > 0) {
-      interval = window.setInterval(() => {
-        setTimeLeft((time) => time - 1);
-      }, 1000);
-    } else if (isActive && !intermission && timeLeft === 0) {
-      setIsActive(false);
-      handlePhaseComplete();
+    // Timer Mode Logic (Countdown)
+    if (timerMode === 'timer') {
+      if (isActive && !intermission && timeLeft > 0) {
+        interval = window.setInterval(() => {
+          setTimeLeft((time) => time - 1);
+        }, 1000);
+      } else if (isActive && !intermission && timeLeft === 0) {
+        setIsActive(false);
+        handlePhaseComplete();
+      }
+    } 
+    // Study Mode Logic (Stopwatch)
+    else {
+      if (isActive) {
+        interval = window.setInterval(() => {
+          setStudyTime(t => t + 1);
+        }, 1000);
+      }
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, timeLeft, intermission]);
+  }, [isActive, timeLeft, intermission, timerMode]);
 
   const prevDurations = useRef({ workDuration, shortBreakDuration, longBreakDuration });
 
   useEffect(() => {
-    const changed = 
-      prevDurations.current.workDuration !== workDuration ||
-      prevDurations.current.shortBreakDuration !== shortBreakDuration ||
-      prevDurations.current.longBreakDuration !== longBreakDuration;
-      
-    if (changed) {
-      if (!isActive && !intermission) {
-        if (mode === 'work') {
-          setTimeLeft(workDuration * 60);
-          lastRecordedTimeLeftRef.current = workDuration * 60;
+    if (timerMode === 'timer') {
+      const changed = 
+        prevDurations.current.workDuration !== workDuration ||
+        prevDurations.current.shortBreakDuration !== shortBreakDuration ||
+        prevDurations.current.longBreakDuration !== longBreakDuration;
+        
+      if (changed) {
+        if (!isActive && !intermission) {
+          if (phase === 'work') {
+            setTimeLeft(workDuration * 60);
+            lastRecordedTimeLeftRef.current = workDuration * 60;
+          }
+          else if (phase === 'shortBreak') setTimeLeft(shortBreakDuration * 60);
+          else if (phase === 'longBreak') setTimeLeft(longBreakDuration * 60);
         }
-        else if (mode === 'shortBreak') setTimeLeft(shortBreakDuration * 60);
-        else if (mode === 'longBreak') setTimeLeft(longBreakDuration * 60);
+        prevDurations.current = { workDuration, shortBreakDuration, longBreakDuration };
       }
-      prevDurations.current = { workDuration, shortBreakDuration, longBreakDuration };
     }
-  }, [workDuration, shortBreakDuration, longBreakDuration, mode, isActive, intermission]);
+  }, [workDuration, shortBreakDuration, longBreakDuration, phase, isActive, intermission, timerMode]);
 
-  const recordElapsed = (currentTimeLeft: number) => {
-    if (mode === 'work') {
+  const recordElapsedTimerMode = (currentTimeLeft: number) => {
+    if (phase === 'work') {
       const elapsed = lastRecordedTimeLeftRef.current - currentTimeLeft;
       if (elapsed > 0) {
         recordStudySession(elapsed);
@@ -127,9 +132,8 @@ export const TimerView: React.FC<{
   };
 
   const handlePhaseComplete = () => {
-    if (mode === 'work') {
-      recordElapsed(0);
-      
+    if (phase === 'work') {
+      recordElapsedTimerMode(0);
       const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
       setIntermission({
         active: true,
@@ -137,9 +141,8 @@ export const TimerView: React.FC<{
         timeLeft: 10
       });
     } else {
-      // Break is over, next is work
-      if (mode === 'longBreak') {
-         setCurrentCycle(1); // Reset cycles after long break
+      if (phase === 'longBreak') {
+         setCurrentCycle(1);
       } else {
          setCurrentCycle(prev => prev + 1);
       }
@@ -151,8 +154,8 @@ export const TimerView: React.FC<{
     }
   };
 
-  const startNextPhase = (nextMode: TimerMode) => {
-    setMode(nextMode);
+  const startNextPhase = (nextMode: PhaseMode) => {
+    setPhase(nextMode);
     let newTime = 0;
     if (nextMode === 'work') newTime = workDuration * 60;
     else if (nextMode === 'shortBreak') newTime = shortBreakDuration * 60;
@@ -167,37 +170,69 @@ export const TimerView: React.FC<{
   };
 
   const extendCurrentPhase = () => {
-    // Extend by 5 minutes
     const newTime = 5 * 60;
     setTimeLeft(newTime);
-    if (mode === 'work') {
+    if (phase === 'work') {
       lastRecordedTimeLeftRef.current = newTime;
     }
     setIsActive(true);
     setIntermission(null);
   };
 
-  const toggleTimer = () => {
-    if (isActive) {
-      // We are pausing, record elapsed time
-      recordElapsed(timeLeft);
+  const togglePlay = () => {
+    if (timerMode === 'timer') {
+      if (isActive) {
+        recordElapsedTimerMode(timeLeft); // Save partial progress if paused
+      } else {
+        lastRecordedTimeLeftRef.current = timeLeft; // Update ref to current time on resume
+      }
     }
     setIsActive(!isActive);
   };
 
-  const handleThemeClick = (req: number, id: string) => {
-    if (currentStreak >= req) {
-      setTheme(id as Theme);
-    } else {
-      setThemePopup(`Unlocks at a ${req}-day streak!`);
-      setTimeout(() => setThemePopup(null), 3000);
+  const stopStudyMode = () => {
+    setIsActive(false);
+    if (studyTime > 0) {
+      recordStudySession(studyTime);
+      setStudyTime(0);
     }
   };
 
+  const stopTimerMode = () => {
+    setIsActive(false);
+    if (phase === 'work') {
+      recordElapsedTimerMode(timeLeft);
+    }
+    // Reset to current phase's full duration
+    let newTime = 0;
+    if (phase === 'work') newTime = workDuration * 60;
+    else if (phase === 'shortBreak') newTime = shortBreakDuration * 60;
+    else if (phase === 'longBreak') newTime = longBreakDuration * 60;
+    setTimeLeft(newTime);
+    lastRecordedTimeLeftRef.current = newTime;
+  };
+
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const changeMode = (mode: 'study' | 'timer') => {
+    if (isActive) return; // Don't allow mode switch while running
+    setTimerMode(mode);
+    if (mode === 'timer') {
+      setPhase('work');
+      setTimeLeft(workDuration * 60);
+      lastRecordedTimeLeftRef.current = workDuration * 60;
+    } else {
+      setStudyTime(0);
+    }
   };
 
   return (
@@ -208,6 +243,7 @@ export const TimerView: React.FC<{
       onTouchStart={resetIdleTimer}
       onMouseMove={resetIdleTimer}
     >
+      <AudioPlayer />
       
       {/* Top Bar: Analytics & Gamification (Hidden when active) */}
       <AnimatePresence>
@@ -229,43 +265,27 @@ export const TimerView: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Top Right: Theme Selector (Hidden when active) */}
+      {/* Mode Selector (Hidden when active) */}
       <AnimatePresence>
         {!isActive && !intermission && (
           <motion.div 
-            className="absolute top-4 sm:top-8 right-4 sm:right-8 flex gap-2 sm:gap-3 z-40"
+            className="absolute top-4 sm:top-8 right-4 sm:right-8 flex bg-[var(--bg-secondary)] rounded-full p-1 z-40 border border-[var(--border)]"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            {THEME_REQUIREMENTS.map((t) => {
-              const isUnlocked = currentStreak >= t.req;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => handleThemeClick(t.req, t.id)}
-                  className={`relative w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-transform hover:scale-110 ${theme === t.id ? 'border-[var(--accent)] scale-110 z-10' : 'border-black/10'}`}
-                  style={{ backgroundColor: t.color }}
-                  title={t.label}
-                >
-                  {!isUnlocked && <Lock size={14} className="text-black/30" />}
-                </button>
-              );
-            })}
-            
-            {/* Theme Locked Popup */}
-            <AnimatePresence>
-              {themePopup && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute top-14 right-0 glass-panel px-4 py-2 rounded-xl text-sm font-bold text-[var(--text-primary)] whitespace-nowrap shadow-xl"
-                >
-                  {themePopup}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <button 
+              onClick={() => changeMode('timer')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${timerMode === 'timer' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              <Hourglass size={16} /> Timer
+            </button>
+            <button 
+              onClick={() => changeMode('study')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${timerMode === 'study' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              <Clock size={16} /> Study
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -278,17 +298,17 @@ export const TimerView: React.FC<{
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <h2 className="text-3xl font-serif text-[var(--text-primary)] mb-4">
-              {mode === 'work' ? 'Study Session Complete!' : 'Break Over!'}
+              {phase === 'work' ? 'Study Session Complete!' : 'Break Over!'}
             </h2>
             <p className="text-lg text-[var(--text-secondary)] mb-8">
               Autostarting in {intermission.timeLeft}s
             </p>
             <div className="flex gap-4">
               <button onClick={() => startNextPhase(intermission.nextMode)} className="px-8 py-3 rounded-full bg-[var(--accent)] text-white font-medium hover:bg-[var(--accent-hover)] transition-colors shadow-lg">
-                {mode === 'work' ? 'Start Break' : 'Start Next Study Session'}
+                {phase === 'work' ? 'Start Break' : 'Start Next Study Session'}
               </button>
               <button onClick={extendCurrentPhase} className="px-8 py-3 rounded-full glass-panel text-[var(--text-primary)] font-medium hover:bg-[var(--bg-secondary)] transition-colors">
-                {mode === 'work' ? 'Extend Study by 5 minutes' : 'Extend Break by 5 minutes'}
+                {phase === 'work' ? 'Extend Study by 5 minutes' : 'Extend Break by 5 minutes'}
               </button>
             </div>
           </motion.div>
@@ -297,63 +317,76 @@ export const TimerView: React.FC<{
 
       {/* The Clock */}
       <motion.div 
-        onClick={toggleTimer}
+        onClick={togglePlay}
         className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700 cursor-pointer`}
         animate={{ 
           scale: isActive ? 1.05 : 1,
           y: isActive ? 0 : 0
         }}
-        style={{ fontSize: isActive ? 'clamp(10rem, 20vw, 20rem)' : 'clamp(6rem, 14vw, 14rem)' }}
+        style={{ fontSize: isActive ? 'clamp(8rem, 18vw, 18rem)' : 'clamp(5rem, 12vw, 12rem)' }}
       >
-        {formatTime(timeLeft)}
+        {timerMode === 'timer' ? formatTime(timeLeft) : formatTime(studyTime)}
       </motion.div>
 
-      {/* Mode Indicator (Text instead of buttons) */}
+      {/* Phase Indicator */}
       <AnimatePresence>
         {!isActive && !intermission && (
           <motion.div 
             className="mt-6 text-[var(--text-secondary)] font-medium tracking-widest uppercase text-sm"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            {mode === 'work' ? 'Focus Session' : mode === 'shortBreak' ? 'Short Break' : 'Long Break'}
+            {timerMode === 'timer' 
+              ? (phase === 'work' ? 'Focus Session' : phase === 'shortBreak' ? 'Short Break' : 'Long Break')
+              : 'Stopwatch Mode'
+            }
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Controls (Hidden when active unless hovering) */}
+      {/* Controls */}
       <AnimatePresence>
         {(!isActive || isHovering) && !intermission && (
           <motion.div 
-            className="flex items-center gap-8 mt-16 text-[var(--text-secondary)] absolute bottom-32"
+            className="flex items-center gap-6 mt-16 text-[var(--text-secondary)] absolute bottom-32"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
             {!isActive && (
-              <button onClick={() => setShowSettings(true)} className="p-4 rounded-full hover:bg-[var(--bg-secondary)] transition-colors">
-                <Settings size={28} />
+              <button onClick={() => setShowSettings(true)} className="p-4 rounded-full glass-panel hover:bg-[var(--bg-secondary)] transition-colors">
+                <Settings size={24} />
               </button>
             )}
             
             <button 
-              onClick={toggleTimer} 
+              onClick={togglePlay} 
               className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] shadow-lg transition-all duration-500 ${isActive ? 'w-16 h-16 opacity-50 hover:opacity-100 hover:scale-110' : 'w-20 h-20'}`}
             >
               {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-2" />}
             </button>
             
-            {!isActive && (
+            {/* Stop/Finish Button */}
+            {(isActive || (timerMode === 'study' && studyTime > 0) || (timerMode === 'timer' && timeLeft < workDuration * 60)) && (
+              <button 
+                onClick={timerMode === 'study' ? stopStudyMode : stopTimerMode} 
+                className="p-4 rounded-full glass-panel hover:bg-[var(--bg-secondary)] transition-colors text-red-500 hover:text-red-600"
+                title="Stop & Save"
+              >
+                <Square size={24} fill="currentColor" />
+              </button>
+            )}
+
+            {!isActive && timerMode === 'timer' && (
               <button onClick={() => {
-                // Skip to next phase automatically
-                if (mode === 'work') {
-                  recordElapsed(timeLeft);
+                if (phase === 'work') {
+                  recordElapsedTimerMode(timeLeft);
                   const isLongBreakNext = currentCycle % cyclesBeforeLongBreak === 0;
                   startNextPhase(isLongBreakNext ? 'longBreak' : 'shortBreak');
                 } else {
                   startNextPhase('work');
                 }
-              }} className="p-4 rounded-full hover:bg-[var(--bg-secondary)] transition-colors">
-                <SkipForward size={28} />
+              }} className="p-4 rounded-full glass-panel hover:bg-[var(--bg-secondary)] transition-colors">
+                <SkipForward size={24} />
               </button>
             )}
           </motion.div>
@@ -417,7 +450,6 @@ const SettingsModal = ({ onClose }: { onClose: () => void }) => {
         <button onClick={onClose} className="w-full py-3 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">
           Cancel
         </button>
-        <p className="mt-8 text-center text-xs text-[var(--text-secondary)] opacity-50 tracking-widest uppercase">Created by Yaksh</p>
       </motion.div>
     </motion.div>
   );
