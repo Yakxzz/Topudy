@@ -26,8 +26,7 @@ function App() {
     incrementTrialTime,
     showPaywall,
     setShowPaywall,
-    userName,
-    hasSeenSplash
+    userName
   } = useAppStore();
 
   const [hasShownPaywallThisSession, setHasShownPaywallThisSession] = useState(false);
