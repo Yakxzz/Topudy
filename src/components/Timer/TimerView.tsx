@@ -122,10 +122,10 @@ export const TimerView: React.FC<{
       <motion.div 
         className={`font-serif leading-none tracking-tighter text-[var(--accent)] drop-shadow-sm select-none transition-all duration-700`}
         animate={{ 
-          scale: isActive ? 1.2 : 1,
+          scale: isActive ? 1.1 : 1,
           y: isActive ? 0 : 0
         }}
-        style={{ fontSize: isActive ? 'clamp(12rem, 25vw, 25rem)' : 'clamp(8rem, 18vw, 18rem)' }}
+        style={{ fontSize: isActive ? 'clamp(6rem, 20vw, 18rem)' : 'clamp(5rem, 15vw, 12rem)' }}
       >
         {formatTime(timeLeft)}
       </motion.div>
@@ -134,7 +134,7 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {(!isActive || isHovering) && (
           <motion.div 
-            className="flex items-center gap-8 mt-16 text-[var(--text-secondary)] absolute bottom-32"
+            className="flex items-center gap-4 sm:gap-8 mt-16 text-[var(--text-secondary)] absolute bottom-32"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}

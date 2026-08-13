@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, CheckSquare, Clock } from 'lucide-react';
 import { useAppStore } from '../store';
+import { GamificationModal } from './Gamification/GamificationModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
   const { theme } = useAppStore();
   const [isUIVisible, setIsUIVisible] = useState(true);
   const hideTimeoutRef = useRef<number | null>(null);
+  const [showGamification, setShowGamification] = useState(false);
 
   useEffect(() => {
     document.body.className = theme === 'default' ? '' : `theme-${theme}`;
@@ -47,9 +49,38 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
 
   return (
     <div className="relative w-full h-full flex overflow-hidden">
-      <div className="flex-1 w-full h-full overflow-y-auto hide-scrollbar z-0 transition-all duration-500">
+      <div className="flex-1 w-full h-full overflow-y-auto hide-scrollbar z-0 transition-all duration-500 pb-32">
         {children}
       </div>
+
+      {/* Profile / Gamification Icon Top Right */}
+      <AnimatePresence>
+        {isUIVisible && !hideNav && (
+          <motion.div 
+            onClick={() => setShowGamification(true)}
+            className="absolute top-4 sm:top-8 right-4 sm:right-8 z-50 flex items-center gap-3 bg-[var(--bg-secondary)] rounded-full p-2 pr-4 border border-[var(--border)] shadow-sm cursor-pointer hover:scale-105 transition-transform"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white shrink-0">
+              <span className="font-bold font-serif text-sm">Me</span>
+            </div>
+            <div className="flex flex-col hidden sm:flex">
+              <span className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1">
+                Student Profile
+              </span>
+              <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                Streaks & Certificates
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+         {showGamification && <GamificationModal onClose={() => setShowGamification(false)} />}
+      </AnimatePresence>
 
       {/* Auto-hiding Navigation */}
       <AnimatePresence>
