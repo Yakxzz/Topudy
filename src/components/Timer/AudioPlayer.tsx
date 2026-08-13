@@ -11,7 +11,7 @@ const TRACKS = [
 ];
 
 export const AudioPlayer = () => {
-  const { audioPlaying, audioTrack, audioVolume, setAudioState, isPremium, trialTimeUsed } = useAppStore();
+  const { audioPlaying, audioTrack, audioVolume, setAudioState } = useAppStore();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -34,10 +34,7 @@ export const AudioPlayer = () => {
     }
   }, [audioVolume, isMuted]);
 
-  const togglePlay = () => setAudioState(!audioPlaying);
-
-  const isLocked = !isPremium && trialTimeUsed >= 600;
-  if (isLocked) return null;
+  const togglePlay = () => setAudioState({ audioPlaying: !audioPlaying });
 
   return (
     <>
@@ -64,7 +61,7 @@ export const AudioPlayer = () => {
                   <button
                     key={track.id}
                     onClick={() => {
-                      setAudioState(true, track.id);
+                      setAudioState({ audioPlaying: true, audioTrack: track.id });
                     }}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex justify-between items-center ${
                       audioTrack === track.id 
@@ -96,7 +93,7 @@ export const AudioPlayer = () => {
                   value={isMuted ? 0 : audioVolume}
                   onChange={(e) => {
                     setIsMuted(false);
-                    setAudioState(audioPlaying, audioTrack, parseFloat(e.target.value));
+                    setAudioState({ audioVolume: parseFloat(e.target.value) });
                   }}
                   className="w-full h-1 bg-[var(--border)] rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
                 />
