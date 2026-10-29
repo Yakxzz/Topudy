@@ -9,13 +9,20 @@ import { useAppStore } from './store';
 function App() {
   const [activeTab, setActiveTab] = useState('timer');
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const { checkStreakStatus } = useAppStore();
+  const { checkStreakStatus, syllabus, loadCbseSyllabusTemplate } = useAppStore();
 
   useEffect(() => {
     checkStreakStatus();
     const interval = setInterval(() => checkStreakStatus(), 1000 * 60 * 60);
     return () => clearInterval(interval);
   }, [checkStreakStatus]);
+
+  // If syllabus is empty, pre-populate with 10th CBSE syllabus
+  useEffect(() => {
+    if (syllabus.length === 0) {
+      loadCbseSyllabusTemplate(false);
+    }
+  }, [syllabus.length, loadCbseSyllabusTemplate]);
 
   const renderContent = () => {
     switch(activeTab) {
@@ -27,7 +34,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden">
+    <div className="h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-sans">
       <SplashScreen />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} hideNav={isTimerActive}>
         <main className="h-full relative overflow-hidden">

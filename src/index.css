@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", "Lora", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-diploma: "Cinzel", "Playfair Display", serif;
 }
 
 @layer base {
@@ -129,5 +131,39 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .font-mono-timer {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .font-diploma {
+    font-family: var(--font-diploma);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(163, 177, 138, 0.25);
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-certificate, .printable-certificate * {
+    visibility: visible;
+  }
+  .printable-certificate {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 2rem;
+    box-shadow: none !important;
+    border: none !important;
   }
 }
