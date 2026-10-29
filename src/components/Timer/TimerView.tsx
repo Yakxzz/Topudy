@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Play, Pause, RotateCcw, Maximize2, Minimize2, Flame, BarChart2, BookOpen } from 'lucide-react';
+import { Settings, Play, Pause, RotateCcw, Maximize2, Minimize2, Flame, BarChart2, BookOpen, CheckCircle, Infinity as InfinityIcon, Timer as TimerIcon } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { GamificationModal } from '../Gamification/GamificationModal';
 import { AnalyticsModal } from '../Analytics/AnalyticsModal';
@@ -15,10 +15,10 @@ const CBSE_SUBJECTS = [
 ];
 
 const PRESETS = [
-  { label: '25m Pomodoro', minutes: 25, badge: 'Standard' },
-  { label: '45m Deep Study', minutes: 45, badge: 'Recommended' },
-  { label: '60m PYQ Sprint', minutes: 60, badge: 'Intense' },
-  { label: '180m Board Mock', minutes: 180, badge: 'Full Exam' },
+  { label: '25m Pomodoro', minutes: 25 },
+  { label: '45m Deep Study', minutes: 45 },
+  { label: '60m PYQ Sprint', minutes: 60 },
+  { label: '180m Board Mock', minutes: 180 },
 ];
 
 const MOTIVATIONAL_QUOTES = [
@@ -38,11 +38,21 @@ export const TimerView: React.FC<{
     currentStreak,
     timerFont,
     currentSubjectTag,
-    setCurrentSubjectTag
+    setCurrentSubjectTag,
+    studentName
   } = useAppStore();
   
+  // Mode: 'countdown' | 'infinite'
+  const [timerType, setTimerType] = useState<'countdown' | 'infinite'>('countdown');
+
+  // Countdown state
   const [timeLeft, setTimeLeft] = useState(defaultTimerDuration * 60);
   const [totalSessionSeconds, setTotalSessionSeconds] = useState(defaultTimerDuration * 60);
+  
+  // Infinite / Stopwatch state (elapsed time in seconds)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Active status
   const [isActive, setIsActive] = useState(false);
   
   // Modals & Zen
@@ -50,6 +60,7 @@ export const TimerView: React.FC<{
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showGamification, setShowGamification] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [completedDurationDisplay, setCompletedDurationDisplay] = useState('');
   const [quoteIndex, setQuoteIndex] = useState(0);
 
   // Interaction Hover
@@ -63,38 +74,50 @@ export const TimerView: React.FC<{
     setIsTimerActive(isActive);
   }, [isActive, setIsTimerActive]);
 
-  // Sync default duration changes when paused
+  // Sync default duration changes when countdown is paused
   useEffect(() => {
-    if (!isActive) {
+    if (!isActive && timerType === 'countdown') {
       const secs = defaultTimerDuration * 60;
       setTimeLeft(secs);
       setTotalSessionSeconds(secs);
     }
-  }, [defaultTimerDuration, isActive]);
+  }, [defaultTimerDuration, isActive, timerType]);
 
-  const handleTimerComplete = useCallback(() => {
+  const handleCountdownComplete = useCallback(() => {
     sounds.playTimerComplete();
     recordStudySession(totalSessionSeconds, currentSubjectTag);
+    const mins = Math.floor(totalSessionSeconds / 60);
+    setCompletedDurationDisplay(`${mins} minutes`);
     setShowCompletion(true);
     setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
   }, [totalSessionSeconds, currentSubjectTag, recordStudySession]);
 
+  // Main Timer Interval
   useEffect(() => {
     let interval: number | null = null;
     
-    if (isActive && timeLeft > 0) {
-      interval = window.setInterval(() => {
-        setTimeLeft((time) => time - 1);
-      }, 1000);
-    } else if (isActive && timeLeft === 0) {
-      setIsActive(false);
-      handleTimerComplete();
+    if (isActive) {
+      if (timerType === 'countdown') {
+        if (timeLeft > 0) {
+          interval = window.setInterval(() => {
+            setTimeLeft((time) => time - 1);
+          }, 1000);
+        } else if (timeLeft === 0) {
+          setIsActive(false);
+          handleCountdownComplete();
+        }
+      } else {
+        // Infinite timer counts up
+        interval = window.setInterval(() => {
+          setElapsedSeconds((sec) => sec + 1);
+        }, 1000);
+      }
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, timeLeft, handleTimerComplete]);
+  }, [isActive, timeLeft, timerType, handleCountdownComplete]);
 
   // Keyboard shortcuts (Space to start/pause, R to reset, F for fullscreen)
   useEffect(() => {
@@ -123,7 +146,27 @@ export const TimerView: React.FC<{
   const resetTimer = () => {
     sounds.playClick();
     setIsActive(false);
-    setTimeLeft(totalSessionSeconds);
+    if (timerType === 'countdown') {
+      setTimeLeft(totalSessionSeconds);
+    } else {
+      setElapsedSeconds(0);
+    }
+  };
+
+  // Finish & log infinite study session
+  const finishInfiniteSession = () => {
+    if (elapsedSeconds < 30) {
+      alert("Session was under 30 seconds. Study a bit longer to log it!");
+      return;
+    }
+    sounds.playTimerComplete();
+    setIsActive(false);
+    recordStudySession(elapsedSeconds, currentSubjectTag);
+    const mins = Math.floor(elapsedSeconds / 60);
+    const secs = elapsedSeconds % 60;
+    setCompletedDurationDisplay(`${mins}m ${secs}s`);
+    setShowCompletion(true);
+    setElapsedSeconds(0);
   };
 
   const handleUserActivity = () => {
@@ -131,7 +174,7 @@ export const TimerView: React.FC<{
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     hoverTimeoutRef.current = window.setTimeout(() => {
       setIsHovering(false);
-    }, 3500);
+    }, 4000);
   };
 
   const toggleFullscreen = () => {
@@ -149,14 +192,17 @@ export const TimerView: React.FC<{
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
 
-    if (hrs > 0) {
+    if (hrs > 0 || timerType === 'infinite') {
       return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Progress ring math
-  const progressRatio = totalSessionSeconds > 0 ? (totalSessionSeconds - timeLeft) / totalSessionSeconds : 0;
+  const progressRatio = timerType === 'countdown' 
+    ? (totalSessionSeconds > 0 ? (totalSessionSeconds - timeLeft) / totalSessionSeconds : 0)
+    : ((elapsedSeconds % 3600) / 3600); // Rotates every hour in infinite mode
+
   const strokeDashoffset = 100 - progressRatio * 100;
 
   // Font styling class
@@ -168,49 +214,95 @@ export const TimerView: React.FC<{
 
   return (
     <div 
-      className="w-full h-full flex flex-col items-center justify-center relative select-none overflow-hidden"
+      className="w-full min-h-[calc(100vh-140px)] flex flex-col items-center justify-between relative select-none overflow-x-hidden pt-2 pb-16"
       onMouseMove={handleUserActivity}
       onTouchStart={handleUserActivity}
     >
       
-      {/* Top Controls: Analytics & Gamification */}
+      {/* Top Bar: Analytics, Streak, and Mode Switcher */}
       <AnimatePresence>
         {(!isActive || isHovering) && (
           <motion.div 
-            className="absolute top-4 sm:top-8 left-4 sm:left-8 flex items-center gap-3 z-40"
-            initial={{ opacity: 0, y: -20 }}
+            className="w-full max-w-4xl px-4 flex items-center justify-between z-30 mb-2"
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
           >
-            <button 
-              onClick={() => setShowAnalytics(true)} 
-              className="glass-panel p-2.5 sm:p-3 rounded-full hover:scale-105 transition-transform text-[var(--accent)] border border-[var(--border)] shadow-sm"
-              title="Board Study Analytics"
+            {/* Left buttons: Analytics & Streak */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowAnalytics(true)} 
+                className="glass-panel p-2.5 rounded-full hover:scale-105 transition-transform text-[var(--accent)] border border-[var(--border)] shadow-sm"
+                title="Board Analytics"
+              >
+                <BarChart2 size={18} />
+              </button>
+              <button 
+                onClick={() => setShowGamification(true)} 
+                className="glass-panel px-3 py-1.5 rounded-full hover:scale-105 transition-transform text-orange-500 flex items-center gap-1.5 border border-[var(--border)] shadow-sm"
+                title="Current Streak"
+              >
+                <Flame size={16} fill="currentColor" />
+                <span className="font-bold text-xs font-mono-timer">{currentStreak}d</span>
+              </button>
+            </div>
+
+            {/* Center: Countdown vs Infinite Flow Switcher */}
+            <div className="flex items-center p-1 bg-[var(--bg-secondary)] rounded-full border border-[var(--border)] shadow-inner">
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  setIsActive(false);
+                  setTimerType('countdown');
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  timerType === 'countdown'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <TimerIcon size={13} />
+                <span>Countdown</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  setIsActive(false);
+                  setTimerType('infinite');
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  timerType === 'infinite'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <InfinityIcon size={13} />
+                <span>Infinite Focus</span>
+              </button>
+            </div>
+
+            {/* Right: Fullscreen Zen button */}
+            <button
+              onClick={toggleFullscreen}
+              className="p-2.5 rounded-full glass-panel border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-sm hidden sm:flex"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Zen Fullscreen (F)'}
             >
-              <BarChart2 size={20} />
-            </button>
-            <button 
-              onClick={() => setShowGamification(true)} 
-              className="glass-panel px-3.5 py-2 rounded-full hover:scale-105 transition-transform text-orange-500 flex items-center gap-2 border border-[var(--border)] shadow-sm"
-              title="Current Streak & Milestones"
-            >
-              <Flame size={18} fill="currentColor" />
-              <span className="font-bold text-xs sm:text-sm font-mono-timer">{currentStreak}d</span>
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Top Center: Subject Tag Selector for 10th CBSE */}
+      {/* Subject Tag Selector for 10th CBSE */}
       <AnimatePresence>
         {(!isActive || isHovering) && (
           <motion.div 
-            className="absolute top-4 sm:top-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1 glass-panel rounded-full border border-[var(--border)] shadow-sm z-30 max-w-[92vw] overflow-x-auto hide-scrollbar"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
+            className="flex items-center gap-1.5 p-1 glass-panel rounded-full border border-[var(--border)] shadow-sm z-20 max-w-[94vw] overflow-x-auto hide-scrollbar my-2"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
           >
             {CBSE_SUBJECTS.map((subj) => (
               <button
@@ -219,10 +311,10 @@ export const TimerView: React.FC<{
                   sounds.playClick();
                   setCurrentSubjectTag(subj.id);
                 }}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   currentSubjectTag === subj.id 
                     ? 'bg-[var(--accent)] text-white shadow-sm' 
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <span>{subj.icon}</span>
@@ -233,30 +325,13 @@ export const TimerView: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Fullscreen Zen button top-right when hovering */}
-      <AnimatePresence>
-        {isHovering && (
-          <motion.button
-            onClick={toggleFullscreen}
-            className="absolute top-4 sm:top-8 right-20 sm:right-28 p-2.5 rounded-full glass-panel border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-sm z-40 hidden sm:flex"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Zen Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </motion.button>
-        )}
-      </AnimatePresence>
-
       {/* Timer Circular Ring & Display */}
-      <div className="relative flex items-center justify-center">
-        {/* Subtle SVG Progress Ring */}
+      <div className="relative flex items-center justify-center my-auto py-4">
+        {/* SVG Progress Ring */}
         <svg 
-          className="absolute w-[80vw] h-[80vw] max-w-[420px] max-h-[420px] sm:max-w-[480px] sm:max-h-[480px] -rotate-90 pointer-events-none"
+          className="w-[74vw] h-[74vw] max-w-[360px] max-h-[360px] sm:max-w-[420px] sm:max-h-[420px] -rotate-90 pointer-events-none"
           viewBox="0 0 100 100"
         >
-          {/* Background circle track */}
           <circle
             cx="50"
             cy="50"
@@ -265,7 +340,6 @@ export const TimerView: React.FC<{
             strokeWidth="2.5"
             fill="transparent"
           />
-          {/* Active progress circle */}
           <circle
             cx="50"
             cy="50"
@@ -280,44 +354,41 @@ export const TimerView: React.FC<{
         </svg>
 
         {/* Center Timer Digits */}
-        <div className="flex flex-col items-center justify-center z-10 text-center px-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center px-4">
           <motion.div 
             className={`leading-none text-[var(--accent)] select-none text-glow ${getFontClass()}`}
-            animate={{ 
-              scale: isActive ? 1.05 : 1,
-            }}
+            animate={{ scale: isActive ? 1.04 : 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             style={{ 
-              fontSize: isActive 
-                ? 'clamp(4.2rem, 15vw, 9.5rem)' 
-                : 'clamp(3.8rem, 13vw, 8rem)' 
+              fontSize: timerType === 'infinite' || (timerType === 'countdown' && timeLeft >= 3600)
+                ? 'clamp(3rem, 10vw, 5.8rem)'
+                : 'clamp(4rem, 14vw, 7.5rem)' 
             }}
           >
-            {formatTime(timeLeft)}
+            {formatTime(timerType === 'countdown' ? timeLeft : elapsedSeconds)}
           </motion.div>
 
-          {/* Current Subject Badge */}
-          <motion.div 
-            className="mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border)]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          {/* Current Subject & Mode Badge */}
+          <div className="mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border)]">
             <BookOpen size={12} className="text-[var(--accent)]" />
             <span>{currentSubjectTag}</span>
+            <span className="text-[10px] opacity-60">
+              • {timerType === 'countdown' ? `${Math.round(totalSessionSeconds / 60)}m` : 'Infinite Flow'}
+            </span>
             {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />}
-          </motion.div>
+          </div>
         </div>
       </div>
 
-      {/* Motivational Quote at Bottom during Zen Focus */}
+      {/* Motivational Quote during Zen Focus */}
       <AnimatePresence>
         {isActive && !isHovering && (
           <motion.p 
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 0.7, y: 0 }}
+            animate={{ opacity: 0.75, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.5 }}
-            className="absolute bottom-28 text-center text-xs sm:text-sm italic font-serif text-[var(--text-secondary)] max-w-md px-6"
+            transition={{ duration: 0.4 }}
+            className="text-center text-xs sm:text-sm italic font-serif text-[var(--text-secondary)] max-w-md px-6 my-2"
           >
             "{MOTIVATIONAL_QUOTES[quoteIndex]}"
           </motion.p>
@@ -328,29 +399,31 @@ export const TimerView: React.FC<{
       <AnimatePresence>
         {(!isActive || isHovering) && (
           <motion.div 
-            className="flex items-center gap-4 sm:gap-8 mt-12 sm:mt-16 text-[var(--text-secondary)] absolute bottom-28 z-30"
+            className="flex items-center gap-4 sm:gap-6 text-[var(--text-secondary)] z-30 my-2"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 15 }}
             transition={{ duration: 0.2 }}
           >
-            {!isActive && (
+            {/* Settings (Countdown duration) */}
+            {!isActive && timerType === 'countdown' && (
               <button 
                 onClick={() => {
                   sounds.playClick();
                   setShowSettings(true);
                 }} 
-                className="p-3.5 sm:p-4 rounded-full glass-panel border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors shadow-sm"
-                title="Timer Settings & Presets"
+                className="p-3.5 rounded-full glass-panel border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors shadow-sm"
+                title="Timer Duration & Font"
               >
-                <Settings size={22} />
+                <Settings size={20} />
               </button>
             )}
-            
+
+            {/* Play / Pause Main Button */}
             <button 
               onClick={toggleTimer} 
               className={`rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-all shadow-xl hover:scale-105 active:scale-95 ${
-                isActive ? 'w-16 h-16 opacity-80 hover:opacity-100 ring-4 ring-[var(--accent)]/30' : 'w-20 h-20'
+                isActive ? 'w-16 h-16 ring-4 ring-[var(--accent)]/30' : 'w-20 h-20'
               }`}
               title={isActive ? "Pause Focus (Space)" : "Start Focus (Space)"}
             >
@@ -361,24 +434,37 @@ export const TimerView: React.FC<{
               )}
             </button>
             
-            {!isActive && (
+            {/* Reset Button */}
+            {(!isActive && (timerType === 'countdown' ? timeLeft !== totalSessionSeconds : elapsedSeconds > 0)) && (
               <button 
                 onClick={resetTimer} 
-                className="p-3.5 sm:p-4 rounded-full glass-panel border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors shadow-sm" 
-                title="Reset Timer (R)"
+                className="p-3.5 rounded-full glass-panel border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors shadow-sm" 
+                title="Reset (R)"
               >
-                <RotateCcw size={22} />
+                <RotateCcw size={20} />
+              </button>
+            )}
+
+            {/* In Infinite Mode: "Finish & Record Session" Button */}
+            {timerType === 'infinite' && elapsedSeconds > 0 && (
+              <button
+                onClick={finishInfiniteSession}
+                className="px-4 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-all shadow-md flex items-center gap-1.5"
+                title="Log this study session to your streak and hours"
+              >
+                <CheckCircle size={15} />
+                <span>Finish & Record</span>
               </button>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Quick Presets Bar below main controls when paused */}
+      {/* Presets Bar (Countdown mode only) */}
       <AnimatePresence>
-        {!isActive && (
+        {!isActive && timerType === 'countdown' && (
           <motion.div 
-            className="absolute bottom-12 flex items-center gap-2 max-w-[94vw] overflow-x-auto hide-scrollbar z-20"
+            className="flex items-center gap-2 max-w-[94vw] overflow-x-auto hide-scrollbar z-20 my-2"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
@@ -392,7 +478,7 @@ export const TimerView: React.FC<{
                   setTotalSessionSeconds(preset.minutes * 60);
                   setTimeLeft(preset.minutes * 60);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
                   defaultTimerDuration === preset.minutes
                     ? 'bg-[var(--bg-secondary)] border-[var(--accent)] text-[var(--accent)] shadow-sm'
                     : 'glass-panel border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -402,6 +488,25 @@ export const TimerView: React.FC<{
               </button>
             ))}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Homepage Watermark / Credit by Yaksh Verma */}
+      <AnimatePresence>
+        {(!isActive || isHovering) && (
+          <motion.footer 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.8 }}
+            exit={{ opacity: 0 }}
+            className="mt-auto pt-4 flex flex-col items-center text-center text-[11px] text-[var(--text-secondary)] z-20"
+          >
+            <p className="flex items-center gap-1">
+              Developed with 🤍 by <strong className="font-semibold text-[var(--text-primary)]">Yaksh Verma</strong>
+            </p>
+            <span className="text-[10px] opacity-60">
+              Personal 10th CBSE Boards Study Web App • Topudy
+            </span>
+          </motion.footer>
         )}
       </AnimatePresence>
 
@@ -415,19 +520,19 @@ export const TimerView: React.FC<{
             exit={{ opacity: 0 }}
           >
             <motion.div 
-              className="bg-[var(--bg-primary)] rounded-3xl p-8 max-w-md w-full border border-[var(--border)] shadow-2xl text-center relative"
+              className="bg-[var(--bg-primary)] rounded-3xl p-6 sm:p-8 max-w-md w-full border border-[var(--border)] shadow-2xl text-center relative"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
             >
-              <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-5 shadow-inner">
-                <span className="text-4xl">🌟</span>
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                🌟
               </div>
-              <h2 className="text-3xl font-serif text-[var(--text-primary)] mb-2">
-                Study Session Conquered!
+              <h2 className="text-2xl sm:text-3xl font-serif text-[var(--text-primary)] mb-2 font-bold">
+                Session Logged, {studentName}!
               </h2>
               <p className="text-sm text-[var(--text-secondary)] mb-6">
-                Awesome focus in <span className="font-semibold text-[var(--text-primary)]">{currentSubjectTag}</span>! Your session time has been added to your Board Prep hours and daily streak.
+                You focused for <strong className="text-[var(--text-primary)]">{completedDurationDisplay}</strong> in <strong className="text-[var(--accent)]">{currentSubjectTag}</strong>. Your board preparation hours and daily streak have been updated!
               </p>
               <div className="flex gap-3">
                 <button 
@@ -436,13 +541,13 @@ export const TimerView: React.FC<{
                     setShowCompletion(false); 
                     resetTimer(); 
                   }} 
-                  className="flex-1 py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-lg"
+                  className="flex-1 py-3.5 rounded-2xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] transition-colors shadow-lg text-sm"
                 >
                   Start Next Session
                 </button>
                 <button 
                   onClick={() => setShowCompletion(false)} 
-                  className="px-5 py-3.5 rounded-2xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  className="px-5 py-3.5 rounded-2xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors text-sm"
                 >
                   Close
                 </button>
@@ -489,28 +594,26 @@ const TimerSettingsModal = ({ onClose }: { onClose: () => void }) => {
         animate={{ y: 0, scale: 1 }} 
         exit={{ y: 20, scale: 0.95 }}
       >
-        <h2 className="text-2xl font-serif mb-6 text-center text-[var(--text-primary)]">Timer Configuration</h2>
+        <h2 className="text-2xl font-serif mb-6 text-center text-[var(--text-primary)] font-bold">Timer Configuration</h2>
         
-        <div className="space-y-6 mb-8">
+        <div className="space-y-5 mb-6">
           <div>
             <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">
-              Study Duration (Minutes)
+              Default Countdown Duration (Minutes)
             </label>
-            <div className="flex gap-2">
-              <input 
-                type="number" 
-                min="1"
-                max="360"
-                value={duration} 
-                onChange={e => setDuration(Math.max(1, Number(e.target.value)))} 
-                className="flex-1 p-3 text-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border)] outline-none focus:border-[var(--accent)] font-mono-timer font-bold" 
-              />
-            </div>
+            <input 
+              type="number" 
+              min="1"
+              max="360"
+              value={duration} 
+              onChange={e => setDuration(Math.max(1, Number(e.target.value)))} 
+              className="w-full p-3 text-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border)] outline-none focus:border-[var(--accent)] font-mono-timer font-bold text-lg" 
+            />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">
-              Timer Font Style
+              Aesthetic Timer Font
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -536,13 +639,13 @@ const TimerSettingsModal = ({ onClose }: { onClose: () => void }) => {
         
         <button 
           onClick={handleSave} 
-          className="w-full py-3.5 rounded-xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] transition-colors mb-2 shadow-md"
+          className="w-full py-3.5 rounded-xl bg-[var(--accent)] text-white font-semibold hover:bg-[var(--accent-hover)] transition-colors mb-2 shadow-md text-sm"
         >
-          Save Changes
+          Save Settings
         </button>
         <button 
           onClick={onClose} 
-          className="w-full py-2.5 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors text-sm"
+          className="w-full py-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors text-xs"
         >
           Cancel
         </button>

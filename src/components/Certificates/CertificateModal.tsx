@@ -231,7 +231,8 @@ export const CertificateModal = ({ onClose }: { onClose: () => void }) => {
 
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-wider text-[#8a7f72] mb-0.5">Verification</p>
-                  <p className="font-serif text-xs font-bold text-[#44624a]">Topudy 10th CBSE</p>
+                  <p className="font-serif text-xs font-bold text-[#44624a]">Topudy • Yaksh Verma</p>
+                  <p className="text-[9px] text-[#8a7f72]">Official 10th CBSE Certification</p>
                 </div>
               </div>
             </motion.div>

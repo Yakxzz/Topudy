@@ -37,7 +37,7 @@ function App() {
     <div className="h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] overflow-hidden font-sans">
       <SplashScreen />
       <Layout activeTab={activeTab} setActiveTab={setActiveTab} hideNav={isTimerActive}>
-        <main className="h-full relative overflow-hidden">
+        <main className="w-full h-full relative overflow-y-auto">
           {renderContent()}
         </main>
       </Layout>

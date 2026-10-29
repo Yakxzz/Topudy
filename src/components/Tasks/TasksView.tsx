@@ -96,7 +96,7 @@ export const TasksView: React.FC = () => {
   const currentChapter = currentSubject?.chapters.find(c => c.id === selectedChapter);
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-8 pb-32">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-8 pt-4 sm:pt-6 pb-36 sm:pb-44">
       {/* Title & Today's Progress */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

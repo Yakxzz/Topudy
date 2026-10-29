@@ -92,7 +92,7 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
           </div>
 
           {/* Aesthetics / Themes */}
-          <div>
+          <div className="mb-6">
             <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3">
               Study Themes (All Free)
             </h3>
@@ -117,6 +117,16 @@ export const GamificationModal = ({ onClose }: { onClose: () => void }) => {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Watermark in Profile Modal */}
+          <div className="pt-3 border-t border-[var(--border)] text-center">
+            <p className="text-xs text-[var(--text-secondary)]">
+              Crafted with 🤍 by <strong className="font-semibold text-[var(--text-primary)]">Yaksh Verma</strong>
+            </p>
+            <span className="text-[10px] text-[var(--text-secondary)] opacity-60">
+              For 10th CBSE Scholars • Topudy App
+            </span>
           </div>
         </motion.div>
       </motion.div>
